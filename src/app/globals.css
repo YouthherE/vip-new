@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  
+  --color-primary: #000000;
+  --color-accent: #404040;
+  --color-surface: #ffffff;
+  --color-background: #ffffff;
+  
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --shadow-glass: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Custom Utilities from demo */
+.glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Note: .active class logic will be handled by conditional rendering in React, 
+   but keeping the class here for reference or utility usage */
+.sidebar-item-active {
+  background: #000000;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.memo-yellow { background-color: #f5f5f5; border-color: #d4d4d4; }
+.memo-blue { background-color: #fafafa; border-color: #e5e5e5; }
+.memo-green { background-color: #ffffff; border-color: #d4d4d4; }
+
+/* Scrollbar styles */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 10px; }
+
+body {
+  background-color: var(--color-background);
+  color: #171717;
+  overflow-x: hidden;
+}
