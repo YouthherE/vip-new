@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Layers, 
-  LayoutDashboard, 
+import {
+  Layers,
+  LayoutDashboard,
   MoreHorizontal,
   Users,
   History,
@@ -12,7 +12,9 @@ import {
   TrendingUp,
   Shield,
   Zap,
-  Crown
+  Crown,
+  Package,
+  ShoppingCart
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -21,8 +23,10 @@ export default function Sidebar() {
 
   const menuItems = [
     { id: 'dashboard', label: '首页', icon: LayoutDashboard, category: 'main', path: '/' },
+    { id: 'cashier', label: '收银台', icon: ShoppingCart, category: 'create', path: '/cashier' },
     { id: 'members', label: '会员管理', icon: Users, category: 'create', path: '/members' },
     { id: 'transactions', label: '余额变动', icon: History, category: 'create', path: '/transactions' },
+    { id: 'products', label: '商品管理', icon: Package, category: 'create', path: '/products' },
     { id: 'stats-transactions', label: '收支流水统计', icon: BarChart3, category: 'stats', path: '/statistics/transactions' },
     { id: 'stats-members', label: '会员增长趋势', icon: TrendingUp, category: 'stats', path: '/statistics/members' },
     { id: 'others', label: '短信配置', icon: MoreHorizontal, category: 'more', path: '/others' },

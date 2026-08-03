@@ -1,0 +1,628 @@
+'use client';
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import api from '@/lib/axios';
+import { useToast } from '@/components/ToastProvider';
+import {
+  Search, X, Loader2, ShoppingCart, ImageIcon,
+  Check, Circle, User, Phone, Wallet, AlertCircle,
+  Minus, Plus
+} from 'lucide-react';
+
+interface Product {
+  id: number;
+  name: string;
+  cover_image: string;
+  normal_price: number;
+  member_price: number;
+}
+
+interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+interface MemberInfo {
+  found: boolean;
+  member_id?: number;
+  name?: string;
+  phone?: string;
+  balance?: number;
+}
+
+interface CheckoutResult {
+  order_id: number;
+  order_no: string;
+  price_type: 'normal' | 'member';
+  member_name?: string;
+  member_phone?: string;
+  total_amount: number;
+  item_count: number;
+  balance_before?: number;
+  balance_after?: number;
+  created_at: string;
+  items: CheckoutItem[];
+}
+
+interface CheckoutItem {
+  product_id: number;
+  product_name: string;
+  sold_price: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export default function CashierPage() {
+  const toast = useToast();
+
+  // ──── Products ────
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  // ──── Cart ────
+  const [cart, setCart] = useState<Map<number, CartItem>>(new Map());
+
+  // ──── Modals ────
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
+
+  // ──── Member lookup ────
+  const [memberKeyword, setMemberKeyword] = useState('');
+  const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
+  const [lookingUpMember, setLookingUpMember] = useState(false);
+  const [lookupError, setLookupError] = useState('');
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  // ──── Fetch Products ────
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: any = {};
+      if (search.trim()) params.keyword = search.trim();
+      const res = await api.get('/cashier/products', { params });
+      if (res.data.code === 200) {
+        setProducts(res.data.data.list);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchProducts(), 300);
+    return () => clearTimeout(timer);
+  }, [fetchProducts]);
+
+  // ──── Cart Operations ────
+  const toggleProduct = (product: Product) => {
+    setCart(prev => {
+      const next = new Map(prev);
+      if (next.has(product.id)) {
+        next.delete(product.id);
+      } else {
+        next.set(product.id, { product, quantity: 1 });
+      }
+      return next;
+    });
+  };
+
+  const isSelected = (productId: number) => cart.has(productId);
+
+  const updateQuantity = (productId: number, quantity: number) => {
+    if (quantity <= 0) {
+      setCart(prev => {
+        const next = new Map(prev);
+        next.delete(productId);
+        return next;
+      });
+      return;
+    }
+    setCart(prev => {
+      const next = new Map(prev);
+      const item = next.get(productId);
+      if (item) {
+        next.set(productId, { ...item, quantity: Math.min(quantity, 99) });
+      }
+      return next;
+    });
+  };
+
+  const clearCart = () => setCart(new Map());
+
+  const cartItems = useMemo(() => Array.from(cart.values()), [cart]);
+
+  const selectedCount = cartItems.reduce((s, c) => s + c.quantity, 0);
+
+  const normalTotal = cartItems.reduce((s, c) => s + c.product.normal_price * c.quantity, 0);
+  const memberTotal = cartItems.reduce((s, c) => s + c.product.member_price * c.quantity, 0);
+
+  // For display: which total are we showing?
+  const displayTotal = memberInfo?.found ? memberTotal : normalTotal;
+  const displayPriceType = memberInfo?.found ? 'member' : 'normal';
+
+  // ──── Member Lookup ────
+  const handleLookupMember = async () => {
+    if (!memberKeyword.trim()) {
+      // Empty input: reset to normal price
+      setMemberInfo(null);
+      setLookupError('');
+      return;
+    }
+
+    setLookingUpMember(true);
+    setLookupError('');
+    try {
+      const res = await api.post('/cashier/member/lookup', { keyword: memberKeyword.trim() });
+      if (res.data.code === 200) {
+        if (res.data.data.found) {
+          setMemberInfo(res.data.data);
+        } else {
+          setMemberInfo({ found: false });
+          setLookupError('未找到该会员，请重新输入');
+        }
+      }
+    } catch (e: any) {
+      setLookupError(e.response?.data?.message || '查询失败');
+      setMemberInfo({ found: false });
+    } finally {
+      setLookingUpMember(false);
+    }
+  };
+
+  const clearMember = () => {
+    setMemberKeyword('');
+    setMemberInfo(null);
+    setLookupError('');
+  };
+
+  // ──── Checkout ────
+  const handleCheckout = async (priceType: 'normal' | 'member') => {
+    setCheckingOut(true);
+    try {
+      const body: any = {
+        price_type: priceType,
+        items: cartItems.map(c => ({
+          product_id: c.product.id,
+          quantity: c.quantity,
+        })),
+      };
+
+      if (priceType === 'member' && memberInfo?.member_id) {
+        body.member_id = memberInfo.member_id;
+      }
+
+      const res = await api.post('/cashier/checkout', body);
+      if (res.data.code === 200) {
+        setCheckoutResult(res.data.data);
+        setShowCheckout(false);
+        setShowSuccess(true);
+        clearCart();
+        setMemberKeyword('');
+        setMemberInfo(null);
+        setLookupError('');
+      } else {
+        toast.error(res.data.message);
+      }
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || '购买失败');
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
+  const openCheckout = () => {
+    if (cartItems.length === 0) return;
+    setMemberKeyword('');
+    setMemberInfo(null);
+    setLookupError('');
+    setShowCheckout(true);
+  };
+
+  const handleContinue = () => {
+    setShowSuccess(false);
+    setCheckoutResult(null);
+  };
+
+  // ──── Helper ────
+  const formatPrice = (price: number) => `¥ ${price.toFixed(2)}`;
+
+  const memberBalanceInsufficient = memberInfo?.found && memberInfo.balance !== undefined && memberInfo.balance < memberTotal;
+
+  // ──── Render ────
+  return (
+    <div className="h-full flex flex-col">
+      <div className="bg-white overflow-hidden flex flex-col flex-1 min-h-0">
+        {/* Header / Toolbar */}
+        <div className="p-4 border-b border-slate-100 flex-shrink-0 flex justify-between items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-indigo-600" />
+              <h2 className="font-bold text-lg text-slate-800">收银台</h2>
+            </div>
+            <div className="relative w-56">
+              {loading && search ? (
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
+              ) : (
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              )}
+              <input
+                type="text"
+                placeholder="搜索商品名称..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="overflow-auto flex-1 p-4">
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden animate-pulse">
+                  <div className="aspect-square bg-slate-200" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+              <ShoppingCart className="w-12 h-12 mb-3 text-slate-300" />
+              <p className="text-sm">暂无已上架的商品</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              {products.map((product) => {
+                const selected = isSelected(product.id);
+                return (
+                  <div
+                    key={product.id}
+                    onClick={() => toggleProduct(product)}
+                    className={`bg-white rounded-xl border-2 overflow-hidden transition-all cursor-pointer hover:shadow-md ${
+                      selected
+                        ? 'border-indigo-500 shadow-md shadow-indigo-100 ring-1 ring-indigo-500'
+                        : 'border-slate-100 hover:border-slate-200'
+                    }`}
+                  >
+                    {/* Product Image */}
+                    <div className="aspect-square bg-slate-50 relative overflow-hidden flex items-center justify-center">
+                      {product.cover_image ? (
+                        <img
+                          src={product.cover_image}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center text-slate-300">
+                          <ImageIcon className="w-8 h-8" />
+                          <span className="text-xs mt-1">暂无图片</span>
+                        </div>
+                      )}
+                      {/* Selection indicator */}
+                      <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selected
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white/80 border-slate-300'
+                      }`}>
+                        {selected ? (
+                          <Check className="w-3.5 h-3.5" />
+                        ) : (
+                          <Circle className="w-3.5 h-3.5 text-transparent" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Product Info */}
+                    <div className="p-2.5">
+                      <h4 className="font-medium text-slate-800 text-xs truncate" title={product.name}>
+                        {product.name}
+                      </h4>
+                      <div className="mt-1.5 flex items-baseline gap-1.5">
+                        <span className="text-xs font-semibold text-slate-700">
+                          {formatPrice(product.normal_price)}
+                        </span>
+                      </div>
+                      {product.member_price < product.normal_price && (
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-[10px] text-slate-400">会员</span>
+                          <span className="text-xs font-semibold text-indigo-600">
+                            {formatPrice(product.member_price)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="border-t border-slate-200 p-4 bg-white flex-shrink-0 shadow-lg">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <div className="flex items-center gap-6 text-sm">
+              <div>
+                <span className="text-slate-500">已选：</span>
+                <span className="font-bold text-slate-800">{selectedCount} 件</span>
+              </div>
+              <div>
+                <span className="text-slate-500">合计（原价）：</span>
+                <span className="font-bold text-lg text-slate-800">{formatPrice(normalTotal)}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {cartItems.length > 0 && (
+                <button
+                  onClick={clearCart}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors text-sm"
+                >
+                  清空选择
+                </button>
+              )}
+              <button
+                onClick={openCheckout}
+                disabled={cartItems.length === 0 || checkingOut}
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium"
+              >
+                {checkingOut && <Loader2 className="w-4 h-4 animate-spin" />}
+                去结算
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ──── Checkout Modal ──── */}
+      {showCheckout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b border-slate-100">
+              <h3 className="font-bold text-lg text-slate-800">结算</h3>
+              <button onClick={() => setShowCheckout(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto p-5 space-y-4">
+              {/* Order Items */}
+              <div className="space-y-3">
+                {cartItems.map(ci => {
+                  const unitPrice = memberInfo?.found ? ci.product.member_price : ci.product.normal_price;
+                  const subtotal = unitPrice * ci.quantity;
+                  return (
+                    <div key={ci.product.id} className="flex items-center gap-3 text-sm">
+                      {/* Product name */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-slate-700 font-medium truncate">{ci.product.name}</p>
+                        <p className="text-xs text-slate-400">{formatPrice(unitPrice)} / 件</p>
+                      </div>
+                      {/* Quantity controls */}
+                      <div className="flex items-center gap-0 flex-shrink-0">
+                        <button
+                          onClick={() => updateQuantity(ci.product.id, ci.quantity - 1)}
+                          className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-l-md text-slate-500 hover:bg-slate-50 transition-colors"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          max="99"
+                          value={ci.quantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 1;
+                            updateQuantity(ci.product.id, val);
+                          }}
+                          className="w-12 h-7 border-y border-slate-200 text-center text-xs font-medium text-slate-700 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={() => updateQuantity(ci.product.id, ci.quantity + 1)}
+                          className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-r-md text-slate-500 hover:bg-slate-50 transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {/* Subtotal */}
+                      <span className="font-medium text-slate-700 w-20 text-right flex-shrink-0">{formatPrice(subtotal)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="border-t border-slate-100 pt-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-500">
+                    {memberInfo?.found ? '会员价合计：' : '原价合计：'}
+                  </span>
+                  <span className="font-bold text-lg text-slate-800">
+                    {formatPrice(displayTotal)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Member Lookup */}
+              <div className="border-t border-slate-100 pt-4 space-y-3">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="会员手机号/名称"
+                      value={memberKeyword}
+                      onChange={(e) => {
+                        setMemberKeyword(e.target.value);
+                        if (!e.target.value.trim()) {
+                          setMemberInfo(null);
+                          setLookupError('');
+                        }
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleLookupMember(); }}
+                      className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                    />
+                    {memberKeyword && (
+                      <button
+                        onClick={clearMember}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleLookupMember}
+                    disabled={lookingUpMember || !memberKeyword.trim()}
+                    className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {lookingUpMember ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    查询
+                  </button>
+                </div>
+
+                {/* Lookup Error */}
+                {lookupError && (
+                  <div className="flex items-center gap-1.5 text-red-500 text-xs">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    {lookupError}
+                  </div>
+                )}
+
+                {/* Member Info Card */}
+                {memberInfo?.found && (
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-indigo-500" />
+                      <span className="font-medium text-slate-800">{memberInfo.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="w-4 h-4 text-indigo-500" />
+                      <span className="text-slate-600">{memberInfo.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Wallet className="w-4 h-4 text-indigo-500" />
+                      <span className="text-slate-600">
+                        余额：{formatPrice(memberInfo.balance!)}
+                      </span>
+                    </div>
+                    {!memberBalanceInsufficient && (
+                      <div className="flex items-center gap-2 text-sm text-indigo-600">
+                        <span>扣款后：{formatPrice(memberInfo.balance! - memberTotal)}</span>
+                      </div>
+                    )}
+                    {memberBalanceInsufficient && (
+                      <div className="flex items-center gap-1.5 text-red-500 text-xs">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        余额不足，差额 {formatPrice(memberTotal - memberInfo.balance!)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+              <button
+                onClick={() => setShowCheckout(false)}
+                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors text-sm"
+              >
+                取消
+              </button>
+
+              {/* Original Price Button - always available */}
+              <button
+                onClick={() => handleCheckout('normal')}
+                disabled={checkingOut}
+                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors text-sm disabled:opacity-50"
+              >
+                {checkingOut ? <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> : null}
+                原价购买
+              </button>
+
+              {/* Member Price Button - only visible when member found */}
+              {memberInfo?.found && (
+                <button
+                  onClick={() => handleCheckout('member')}
+                  disabled={checkingOut || memberBalanceInsufficient}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  {checkingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  会员价购买
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── Success Modal ──── */}
+      {showSuccess && checkoutResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6 text-center space-y-4">
+              {/* Success Icon */}
+              <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+                <Check className="w-7 h-7 text-green-600" />
+              </div>
+
+              <h3 className="font-bold text-xl text-slate-800">购买成功</h3>
+
+              {/* Member info (only for member purchase) */}
+              {checkoutResult.price_type === 'member' && checkoutResult.member_name && (
+                <p className="text-sm text-slate-500">
+                  会员：{checkoutResult.member_name}
+                </p>
+              )}
+
+              <p className="text-sm text-slate-500">
+                消费金额：
+                <span className="font-bold text-slate-800">
+                  {formatPrice(checkoutResult.total_amount)}
+                </span>
+                {checkoutResult.price_type === 'member' ? '（会员价）' : '（原价）'}
+              </p>
+
+              {/* Balance card (only for member purchase) */}
+              {checkoutResult.price_type === 'member' && checkoutResult.balance_before !== undefined && (
+                <div className="bg-slate-50 rounded-lg p-4 text-left space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">扣款前余额：</span>
+                    <span className="font-medium text-slate-700">{formatPrice(checkoutResult.balance_before!)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">扣款金额：</span>
+                    <span className="font-medium text-red-600">-{formatPrice(checkoutResult.total_amount)}</span>
+                  </div>
+                  <div className="border-t border-slate-200 pt-1.5 flex justify-between text-sm">
+                    <span className="text-slate-500">当前余额：</span>
+                    <span className="font-bold text-indigo-600">{formatPrice(checkoutResult.balance_after!)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 flex justify-center bg-slate-50">
+              <button
+                onClick={handleContinue}
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 font-medium"
+              >
+                继续购买
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
