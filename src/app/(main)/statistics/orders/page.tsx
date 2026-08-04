@@ -78,7 +78,7 @@ export default function OrdersPage() {
   // Filters
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({
-    startDate: '',
+    startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     priceType: 'all',
   });
@@ -120,7 +120,7 @@ export default function OrdersPage() {
 
   const handleReset = () => {
     setSearch('');
-    setFilters({ startDate: '', endDate: '', priceType: 'all' });
+    setFilters({ startDate: new Date().toISOString().split('T')[0], endDate: '', priceType: 'all' });
   };
 
   const handlePageChange = (newPage: number) => {

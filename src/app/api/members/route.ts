@@ -81,7 +81,7 @@ export async function POST(request: Request) {
         ).bind(
             name,
             phone,
-            cardcode || null,
+            cardcode || '',
             cartype,
             expired_at || null,
             remark || '',
@@ -154,7 +154,7 @@ export async function PUT(request: Request) {
         `).bind(
             name,
             phone,
-            cardcode || null,
+            cardcode || '',
             cartype,
             expired_at || null,
             remark || '',

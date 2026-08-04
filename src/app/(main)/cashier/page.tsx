@@ -6,7 +6,7 @@ import { useToast } from '@/components/ToastProvider';
 import {
   Search, X, Loader2, ShoppingCart, ImageIcon,
   Check, Circle, User, Phone, Wallet, AlertCircle,
-  Minus, Plus
+  Minus, Plus, Printer
 } from 'lucide-react';
 
 interface Product {
@@ -50,6 +50,101 @@ interface CheckoutItem {
   sold_price: number;
   quantity: number;
   subtotal: number;
+}
+
+// ──── Print Receipt Component ────
+function PrintReceiptContent({ result }: { result: CheckoutResult }) {
+  const now = new Date();
+  const ticketNo = result.order_no;
+  const qrData = encodeURIComponent(`订单号:${result.order_no}\n时间:${result.created_at}`);
+
+  return (
+    <>
+      <style>{`
+        @media print {
+          @page { margin: 2mm; size: 80mm auto; }
+          body { margin: 0; }
+          .print-receipt { display: block !important; }
+          .print-receipt * { color: #000 !important; }
+        }
+      `}</style>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '15px', letterSpacing: '1px' }}>儿童乐园</div>
+        <div style={{ fontSize: '13px', fontWeight: 'bold', marginTop: '4px' }}>购 买 凭 证</div>
+      </div>
+
+      <div style={{ borderTop: '1px dashed #999', margin: '6px 0' }} />
+
+      {/* Order Info */}
+      <div style={{ lineHeight: '1.6', fontSize: '12px' }}>
+        <div>票号：{ticketNo}</div>
+        <div>时间：{now.toLocaleString('zh-CN')}</div>
+        <div>类型：{result.price_type === 'member' ? '会员价' : '普通价'}</div>
+        {result.member_name && (
+          <div>会员：{result.member_name}</div>
+        )}
+      </div>
+
+      <div style={{ borderTop: '1px dashed #999', margin: '6px 0' }} />
+
+      {/* Items */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid #ddd' }}>
+            <th style={{ textAlign: 'left', padding: '2px 0', fontWeight: 'normal' }}>商品</th>
+            <th style={{ textAlign: 'center', padding: '2px 0', fontWeight: 'normal', width: '30px' }}>数量</th>
+            <th style={{ textAlign: 'right', padding: '2px 0', fontWeight: 'normal', width: '54px' }}>金额</th>
+          </tr>
+        </thead>
+        <tbody>
+          {result.items.map((item, i) => (
+            <tr key={i}>
+              <td style={{ padding: '2px 0', wordBreak: 'break-all' }}>{item.product_name}</td>
+              <td style={{ padding: '2px 0', textAlign: 'center' }}>{item.quantity}</td>
+              <td style={{ padding: '2px 0', textAlign: 'right' }}>{item.subtotal.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ borderTop: '1px solid #333', margin: '6px 0' }} />
+
+      {/* Total */}
+      <div style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '14px', marginBottom: '6px' }}>
+        合计：¥ {result.total_amount.toFixed(2)}
+      </div>
+
+      {/* Balance info for member purchase */}
+      {result.price_type === 'member' && result.balance_before !== undefined && (
+        <>
+          <div style={{ borderTop: '1px dashed #999', margin: '6px 0' }} />
+          <div style={{ fontSize: '11px', lineHeight: '1.5' }}>
+            <div>扣款前：¥ {result.balance_before!.toFixed(2)}</div>
+            <div>扣款后：¥ {result.balance_after!.toFixed(2)}</div>
+          </div>
+        </>
+      )}
+
+      <div style={{ borderTop: '1px dashed #999', margin: '8px 0' }} />
+
+      {/* QR Code */}
+      <div style={{ textAlign: 'center', margin: '8px 0' }}>
+        <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${qrData}`}
+          alt="QR Code"
+          width="90"
+          height="90"
+          style={{ display: 'inline-block', maxWidth: '100%' }}
+        />
+        <div style={{ fontSize: '9px', color: '#999', marginTop: '2px' }}>扫码验票</div>
+      </div>
+
+      <div style={{ textAlign: 'center', fontSize: '10px', color: '#999', marginTop: '8px' }}>
+        感谢惠顾 · 欢迎再次光临
+      </div>
+    </>
+  );
 }
 
 export default function CashierPage() {
@@ -222,8 +317,101 @@ export default function CashierPage() {
     setShowCheckout(true);
   };
 
+  // ──── Print ────
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+
   const handleContinue = () => {
     setShowSuccess(false);
+    setCheckoutResult(null);
+  };
+
+  const handleOpenPrint = () => {
+    setShowSuccess(false);
+    setShowPrintPreview(true);
+  };
+
+  const handlePrint = () => {
+    if (!checkoutResult) return;
+
+    const now = new Date();
+    const itemsHtml = checkoutResult.items.map(item => `
+      <tr>
+        <td style="padding:2px 0;word-break:break-all">${item.product_name}</td>
+        <td style="padding:2px 0;text-align:center">${item.quantity}</td>
+        <td style="padding:2px 0;text-align:right">${item.subtotal.toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    const balanceHtml = checkoutResult.price_type === 'member' && checkoutResult.balance_before !== undefined ? `
+      <div style="border-top:1px dashed #999;margin:6px 0"></div>
+      <div style="font-size:11px;line-height:1.5">
+        <div>扣款前：¥ ${checkoutResult.balance_before!.toFixed(2)}</div>
+        <div>扣款后：¥ ${checkoutResult.balance_after!.toFixed(2)}</div>
+      </div>
+    ` : '';
+
+    const qrData = encodeURIComponent(`订单号:${checkoutResult.order_no}\n时间:${checkoutResult.created_at}`);
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: monospace; font-size: 12px; color: #000; padding: 10px; }
+  @page { margin: 2mm; size: 80mm auto; }
+</style>
+</head>
+<body>
+<div style="text-align:center;margin-bottom:8px">
+  <div style="font-weight:bold;font-size:15px;letter-spacing:1px">儿童乐园</div>
+  <div style="font-size:13px;font-weight:bold;margin-top:4px">购 买 凭 证</div>
+</div>
+<div style="border-top:1px dashed #999;margin:6px 0"></div>
+<div style="line-height:1.6;font-size:12px">
+  <div>票号：${checkoutResult.order_no}</div>
+  <div>时间：${now.toLocaleString('zh-CN')}</div>
+  <div>类型：${checkoutResult.price_type === 'member' ? '会员价' : '普通价'}</div>
+  ${checkoutResult.member_name ? `<div>会员：${checkoutResult.member_name}</div>` : ''}
+</div>
+<div style="border-top:1px dashed #999;margin:6px 0"></div>
+<table style="width:100%;border-collapse:collapse;font-size:11px">
+  <thead><tr style="border-bottom:1px solid #ddd">
+    <th style="text-align:left;padding:2px 0;font-weight:normal">商品</th>
+    <th style="text-align:center;padding:2px 0;font-weight:normal;width:30px">数量</th>
+    <th style="text-align:right;padding:2px 0;font-weight:normal;width:54px">金额</th>
+  </tr></thead>
+  <tbody>${itemsHtml}</tbody>
+</table>
+<div style="border-top:1px solid #333;margin:6px 0"></div>
+<div style="text-align:right;font-weight:bold;font-size:14px;margin-bottom:6px">合计：¥ ${checkoutResult.total_amount.toFixed(2)}</div>
+${balanceHtml}
+<div style="border-top:1px dashed #999;margin:8px 0"></div>
+<div style="text-align:center;margin:8px 0">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${qrData}" width="90" height="90" style="display:inline-block;max-width:100%">
+  <div style="font-size:9px;color:#999;margin-top:2px">扫码验票</div>
+</div>
+<div style="text-align:center;font-size:10px;color:#999;margin-top:8px">感谢惠顾 · 欢迎再次光临</div>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank', 'width=320,height=600');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+      // Auto-print immediately (onload may not fire for write)
+      setTimeout(() => {
+        printWindow.print();
+      }, 300);
+    }
+  };
+
+  const handleClosePrint = () => {
+    setShowPrintPreview(false);
     setCheckoutResult(null);
   };
 
@@ -566,6 +754,42 @@ export default function CashierPage() {
         </div>
       )}
 
+      {/* ──── Print Preview Modal ──── */}
+      {showPrintPreview && checkoutResult && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:hidden">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100">
+              <h3 className="font-bold text-lg text-slate-800">打印票据预览</h3>
+              <button onClick={handleClosePrint} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Receipt Preview */}
+            <div className="overflow-y-auto p-6 flex justify-center bg-slate-100">
+              <div className="bg-white shadow-lg" style={{ width: '260px', minHeight: '360px', padding: '16px 14px', fontFamily: 'monospace', fontSize: '12px' }}>
+                <PrintReceiptContent result={checkoutResult} />
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+              <button
+                onClick={handleClosePrint}
+                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors text-sm"
+              >
+                取消
+              </button>
+              <button
+                onClick={handlePrint}
+                className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 text-sm font-medium flex items-center gap-2"
+              >
+                <Printer className="w-4 h-4" /> 确认打印
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ──── Success Modal ──── */}
       {showSuccess && checkoutResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -612,7 +836,13 @@ export default function CashierPage() {
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-100 flex justify-center bg-slate-50">
+            <div className="p-4 border-t border-slate-100 flex justify-center gap-3 bg-slate-50">
+              <button
+                onClick={handleOpenPrint}
+                className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-lg hover:bg-white transition-colors font-medium flex items-center gap-2"
+              >
+                <Printer className="w-4 h-4" /> 打印票据
+              </button>
               <button
                 onClick={handleContinue}
                 className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 font-medium"
