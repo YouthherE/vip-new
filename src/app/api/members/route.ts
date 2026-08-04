@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { writeOperationLog } from '@/lib/utils/logger';
 
 export async function GET(request: Request) {
     try {
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
         const total = countResult?.total || 0;
 
         // Get data
-        const query = `SELECT * ${baseQuery} ORDER BY id DESC LIMIT ? OFFSET ?`;
+        const query = `SELECT * ${baseQuery} ORDER BY id ASC LIMIT ? OFFSET ?`;
         params.push(pageSize, offset);
         
         const results = await db.prepare(query).bind(...params).all();
@@ -51,10 +52,23 @@ export async function POST(request: Request) {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
         const body = await request.json() as any;
-        const { name, phone, remark, gender, address, channel, status } = body;
+        const { name, phone, cardcode, cartype, expired_at, remark, gender, address, channel, status } = body;
 
         if (!name || !phone) {
             return jsonResponse(error(400, '姓名和手机号不能为空'), 400);
+        }
+
+        if (!cartype) {
+            return jsonResponse(error(400, '会员类型不能为空'), 400);
+        }
+
+        const validCartypes = ['single', 'quarterly', 'half_year', 'yearly'];
+        if (!validCartypes.includes(cartype)) {
+            return jsonResponse(error(400, '无效的会员类型'), 400);
+        }
+
+        if (cartype !== 'single' && !expired_at) {
+            return jsonResponse(error(400, '季卡/半年卡/年卡必须填写过期日期'), 400);
         }
 
         const existing = await db.prepare('SELECT id FROM members WHERE phone = ?').bind(phone).first();
@@ -63,11 +77,14 @@ export async function POST(request: Request) {
         }
 
         const result = await db.prepare(
-            'INSERT INTO members (name, phone, remark, balance, points, gender, address, channel, status) VALUES (?, ?, ?, 0, 0, ?, ?, ?, ?)'
+            'INSERT INTO members (name, phone, cardcode, cartype, expired_at, remark, balance, points, gender, address, channel, status) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)'
         ).bind(
-            name, 
-            phone, 
-            remark || '', 
+            name,
+            phone,
+            cardcode || null,
+            cartype,
+            expired_at || null,
+            remark || '',
             gender || 'unknown',
             address || '',
             channel || '',
@@ -77,6 +94,13 @@ export async function POST(request: Request) {
         if (!result.success) {
             return jsonResponse(error(500, '创建会员失败'), 500);
         }
+
+        await writeOperationLog(request, db, {
+            target_type: 'member',
+            target_id: undefined,
+            action: 'create',
+            content: JSON.stringify({ name, phone }),
+        });
 
         return jsonResponse(success(null, '会员创建成功'));
     } catch (e: any) {
@@ -90,10 +114,23 @@ export async function PUT(request: Request) {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
         const body = await request.json() as any;
-        const { id, name, phone, remark, gender, address, channel, status } = body;
+        const { id, name, phone, cardcode, cartype, expired_at, remark, gender, address, channel, status } = body;
 
         if (!id) {
             return jsonResponse(error(400, '会员ID不能为空'), 400);
+        }
+
+        if (!cartype) {
+            return jsonResponse(error(400, '会员类型不能为空'), 400);
+        }
+
+        const validCartypes = ['single', 'quarterly', 'half_year', 'yearly'];
+        if (!validCartypes.includes(cartype)) {
+            return jsonResponse(error(400, '无效的会员类型'), 400);
+        }
+
+        if (cartype !== 'single' && !expired_at) {
+            return jsonResponse(error(400, '季卡/半年卡/年卡必须填写过期日期'), 400);
         }
 
         // Check if member exists
@@ -111,13 +148,16 @@ export async function PUT(request: Request) {
         }
 
         const result = await db.prepare(`
-            UPDATE members 
-            SET name = ?, phone = ?, remark = ?, gender = ?, address = ?, channel = ?, status = ?, updated_at = CURRENT_TIMESTAMP 
+            UPDATE members
+            SET name = ?, phone = ?, cardcode = ?, cartype = ?, expired_at = ?, remark = ?, gender = ?, address = ?, channel = ?, status = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `).bind(
-            name, 
-            phone, 
-            remark || '', 
+            name,
+            phone,
+            cardcode || null,
+            cartype,
+            expired_at || null,
+            remark || '',
             gender || 'unknown',
             address || '',
             channel || '',
@@ -128,6 +168,13 @@ export async function PUT(request: Request) {
         if (!result.success) {
             return jsonResponse(error(500, '更新会员失败'), 500);
         }
+
+        await writeOperationLog(request, db, {
+            target_type: 'member',
+            target_id: id,
+            action: 'update',
+            content: JSON.stringify({ name, phone }),
+        });
 
         return jsonResponse(success(null, '会员更新成功'));
     } catch (e: any) {

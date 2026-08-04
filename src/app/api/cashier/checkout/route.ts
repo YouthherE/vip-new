@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { writeOperationLog } from '@/lib/utils/logger';
 
 function generateOrderNo(): string {
     const now = new Date();
@@ -124,6 +125,13 @@ export async function POST(request: Request) {
                 ).bind(orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal).run();
             }
 
+            await writeOperationLog(request, db, {
+                target_type: 'order',
+                target_id: orderId,
+                action: 'checkout_normal',
+                content: JSON.stringify({ order_no: orderNo, total_amount: totalAmount, item_count: itemCount }),
+            });
+
             return jsonResponse(success({
                 order_id: orderId,
                 order_no: orderNo,
@@ -212,6 +220,13 @@ export async function POST(request: Request) {
             if (!phone || phone.length < 7) return phone || '';
             return phone.substring(0, 3) + '****' + phone.substring(phone.length - 4);
         }
+
+        await writeOperationLog(request, db, {
+            target_type: 'order',
+            target_id: orderId,
+            action: 'checkout_member',
+            content: JSON.stringify({ order_no: orderNo, member_id, total_amount: totalAmount, balance_before: balanceBefore, balance_after: balanceAfter }),
+        });
 
         return jsonResponse(success({
             order_id: orderId,

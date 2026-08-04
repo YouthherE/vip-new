@@ -6,6 +6,7 @@ import { verifyJWT } from '@/lib/utils/jwt';
 const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
+  '/api/cron/',              // Cron job endpoints have their own secret-based auth
   '/login',
   '/register',
 ];

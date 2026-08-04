@@ -8,6 +8,9 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const search = searchParams.get('search'); // Member name search
         const type = searchParams.get('type');
+        const memberId = searchParams.get('memberId'); // Filter by specific member
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
 
         // Pagination params
         const page = parseInt(searchParams.get('page') || '1');
@@ -24,6 +27,21 @@ export async function GET(request: Request) {
         if (search) {
             conditions.push('(m.name LIKE ? OR m.phone LIKE ?)');
             params.push(`%${search}%`, `%${search}%`);
+        }
+
+        if (memberId) {
+            conditions.push('t.member_id = ?');
+            params.push(parseInt(memberId));
+        }
+
+        if (startDate) {
+            conditions.push('t.created_at >= ?');
+            params.push(startDate);
+        }
+
+        if (endDate) {
+            conditions.push('t.created_at <= ?');
+            params.push(endDate + ' 23:59:59');
         }
 
         if (type && type !== 'all') {

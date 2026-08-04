@@ -4,5 +4,4 @@
 
 ALTER TABLE transactions ADD COLUMN order_id INTEGER;
 ALTER TABLE transactions ADD COLUMN balance_before REAL;
-
 CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON transactions(order_id);

@@ -7,13 +7,13 @@ import {
   LayoutDashboard,
   MoreHorizontal,
   Users,
-  History,
   BarChart3,
   TrendingUp,
   Shield,
   Zap,
   Crown,
   Package,
+  ShoppingBag,
   ShoppingCart
 } from 'lucide-react';
 
@@ -25,8 +25,8 @@ export default function Sidebar() {
     { id: 'dashboard', label: '首页', icon: LayoutDashboard, category: 'main', path: '/' },
     { id: 'cashier', label: '收银台', icon: ShoppingCart, category: 'create', path: '/cashier' },
     { id: 'members', label: '会员管理', icon: Users, category: 'create', path: '/members' },
-    { id: 'transactions', label: '余额变动', icon: History, category: 'create', path: '/transactions' },
     { id: 'products', label: '商品管理', icon: Package, category: 'create', path: '/products' },
+    { id: 'stats-orders', label: '订单中心', icon: ShoppingBag, category: 'stats', path: '/statistics/orders' },
     { id: 'stats-transactions', label: '收支流水统计', icon: BarChart3, category: 'stats', path: '/statistics/transactions' },
     { id: 'stats-members', label: '会员增长趋势', icon: TrendingUp, category: 'stats', path: '/statistics/members' },
     { id: 'others', label: '短信配置', icon: MoreHorizontal, category: 'more', path: '/others' },

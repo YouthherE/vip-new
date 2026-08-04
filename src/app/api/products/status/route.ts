@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { writeOperationLog } from '@/lib/utils/logger';
 
 export async function PUT(request: Request) {
     try {
@@ -27,6 +28,13 @@ export async function PUT(request: Request) {
         if (!result.success) {
             return jsonResponse(error(500, `批量${actionText}失败`), 500);
         }
+
+        await writeOperationLog(request, db, {
+            target_type: 'product',
+            target_id: ids.join(','),
+            action: status === 'listed' ? 'online' : 'offline',
+            content: JSON.stringify({ ids, status }),
+        });
 
         return jsonResponse(success(null, `批量${actionText}成功`));
     } catch (e: any) {

@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { writeOperationLog } from '@/lib/utils/logger';
 
 export async function POST(request: Request) {
     try {
@@ -53,6 +54,13 @@ export async function POST(request: Request) {
         if (!allSuccess) {
              return jsonResponse(error(500, '变动处理失败'), 500);
         }
+
+        await writeOperationLog(request, db, {
+            target_type: 'member',
+            target_id: memberId,
+            action: 'adjust',
+            content: JSON.stringify({ type, amount: numAmount, balanceAfter, remark }),
+        });
 
         return jsonResponse(success({ balanceAfter }, '变动记录添加成功'));
 

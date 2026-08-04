@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { writeOperationLog } from '@/lib/utils/logger';
 
 export async function GET(request: Request) {
     try {
@@ -95,6 +96,13 @@ export async function POST(request: Request) {
             return jsonResponse(error(500, '创建商品失败'), 500);
         }
 
+        await writeOperationLog(request, db, {
+            target_type: 'product',
+            target_id: undefined,
+            action: 'create',
+            content: JSON.stringify({ name: name.trim(), regular_price, member_price }),
+        });
+
         return jsonResponse(success(null, '商品上架成功'));
     } catch (e: any) {
         console.error('Create product error:', e);
@@ -152,6 +160,13 @@ export async function PUT(request: Request) {
             return jsonResponse(error(500, '更新商品失败'), 500);
         }
 
+        await writeOperationLog(request, db, {
+            target_type: 'product',
+            target_id: id,
+            action: 'update',
+            content: JSON.stringify({ name: name.trim(), regular_price, member_price }),
+        });
+
         return jsonResponse(success(null, '商品更新成功'));
     } catch (e: any) {
         console.error('Update product error:', e);
@@ -182,6 +197,13 @@ export async function DELETE(request: Request) {
         if (!result.success) {
             return jsonResponse(error(500, '删除商品失败'), 500);
         }
+
+        await writeOperationLog(request, db, {
+            target_type: 'product',
+            target_id: id,
+            action: 'delete',
+            content: JSON.stringify({ product_name: product.name }),
+        });
 
         return jsonResponse(success(null, '商品删除成功'));
     } catch (e: any) {
