@@ -52,6 +52,7 @@ interface CheckoutItem {
   member_price: number;
   quantity: number;
   subtotal: number;
+  entry_count: number;
 }
 
 // ──── Print Ticket Component ────
@@ -98,13 +99,16 @@ function PrintTicketContent({ result }: { result: CheckoutResult }) {
         <span style={{ fontWeight: 'bold', fontSize: '13px', letterSpacing: '1px' }}>星光儿童乐园</span>
       </div>
 
-      {/* Ticket Title */}
+      {/* Ticket Title + Entry Counts */}
       <div className="tk" style={{
         textAlign: 'center', fontWeight: 'bold', fontSize: '11px',
         padding: '1px 0', borderTop: '1.5px solid #333', borderBottom: '1.5px solid #333',
         letterSpacing: '3px', marginBottom: '2px'
       }}>
-        入 园 门 票
+        入园人数:
+        <span style={{ fontSize: '8px', fontWeight: 'normal', color: '#e53e3e', letterSpacing: '0' }}>
+          {' '}{result.items.map(item => `${item.product_name} NO.${item.entry_count}`).join(' · ')}
+        </span>
       </div>
 
       <div className="tk" style={{ textAlign: 'right', fontSize: '8px', color: '#666' }}>
@@ -134,7 +138,7 @@ function PrintTicketContent({ result }: { result: CheckoutResult }) {
               <div>{result.price_type === 'member' ? '🎫会员票' : '🎫散客票'} · {totalHeads}位</div>
               {result.items.map((item, i) => (
                 <div key={i} style={{ fontSize: '8px', color: '#555' }}>
-                  {item.product_name} ×{item.quantity}
+                  {item.product_name} ×{item.quantity}  #{item.entry_count}
                 </div>
               ))}
             </td>
@@ -170,21 +174,16 @@ function PrintTicketContent({ result }: { result: CheckoutResult }) {
               </div>
             </td>
           </tr>
-          {/* Member balance */}
-          {result.price_type === 'member' && result.balance_before !== undefined && (
-            <tr>
-              <td colSpan={2} style={{ fontSize: '7px', color: '#888', paddingTop: '2px' }}>
-                扣款前 ¥{result.balance_before!.toFixed(2)} → 扣款后 ¥{result.balance_after!.toFixed(2)}
-              </td>
-            </tr>
-          )}
         </tbody>
       </table>
 
-      {/* Member info (compact) */}
+      {/* Member info */}
       {result.price_type === 'member' && result.member_name && (
-        <div className="tk" style={{ fontSize: '8px', marginTop: '2px', lineHeight: '1.3' }}>
+        <div className="tk" style={{ fontSize: '7px', marginTop: '2px', lineHeight: '1.4', color: '#888' }}>
           💳 {result.member_name}{result.member_phone ? ` · ${result.member_phone}` : ''}
+          {result.balance_before !== undefined && (
+            <span> · 扣款前 ¥{result.balance_before!.toFixed(2)} → 扣款后 ¥{result.balance_after!.toFixed(2)}</span>
+          )}
         </div>
       )}
 
@@ -251,7 +250,22 @@ export default function CashierPage() {
   const [lookupError, setLookupError] = useState('');
   const [checkingOut, setCheckingOut] = useState(false);
 
-  // ──── Fetch Products ────
+  // ──── Entry Counts ────
+  interface EntryCountItem { product_id: number; product_name: string; count: number; }
+  const [entryCounts, setEntryCounts] = useState<{ date: string; list: EntryCountItem[]; total: number }>({ date: '', list: [], total: 0 });
+
+  const fetchEntryCounts = useCallback(async () => {
+    try {
+      const res = await api.get('/cashier/entry-counts');
+      if (res.data?.code === 200 && res.data?.data) {
+        setEntryCounts(res.data.data);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchEntryCounts();
+  }, [fetchEntryCounts]);
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -380,6 +394,7 @@ export default function CashierPage() {
         setMemberKeyword('');
         setMemberInfo(null);
         setLookupError('');
+        fetchEntryCounts(); // 刷新入园计数
       } else {
         toast.error(res.data.message);
       }
@@ -427,6 +442,11 @@ export default function CashierPage() {
       `<div style="font-size:8px;color:#555">${item.product_name} ×${item.quantity}</div>`
     ).join('');
 
+    // Entry counts line
+    const entryCountsLine = checkoutResult.items.map(item =>
+      `${item.product_name} NO.${item.entry_count}`
+    ).join(' · ');
+
     // Price items list (with dual pricing for members)
     const isMember = checkoutResult.price_type === 'member';
     const regularTotal = checkoutResult.items.reduce((s, i) => s + i.normal_price * i.quantity, 0);
@@ -444,15 +464,15 @@ export default function CashierPage() {
       ? `<div style="font-size:7px;display:flex;justify-content:space-between;color:#e53e3e"><span>优惠</span><span>-¥${(regularTotal - checkoutResult.total_amount).toFixed(2)}</span></div>`
       : '';
 
-    // Member section
-    const memberHtml = checkoutResult.price_type === 'member' && checkoutResult.member_name
-      ? `<div style="font-size:8px;margin-top:2px;line-height:1.3">💳 ${checkoutResult.member_name}${checkoutResult.member_phone ? ' · ' + checkoutResult.member_phone : ''}</div>`
-      : '';
-
-    // Balance line
-    const balanceHtml = checkoutResult.price_type === 'member' && checkoutResult.balance_before !== undefined
-      ? `<tr><td colspan="2" style="font-size:7px;color:#888;padding-top:2px">扣款前 ¥${checkoutResult.balance_before!.toFixed(2)} → 扣款后 ¥${checkoutResult.balance_after!.toFixed(2)}</td></tr>`
-      : '';
+    // Member section (name + phone + balance on one line)
+    let memberHtml = '';
+    if (checkoutResult.price_type === 'member' && checkoutResult.member_name) {
+      let line = `💳 ${checkoutResult.member_name}${checkoutResult.member_phone ? ' · ' + checkoutResult.member_phone : ''}`;
+      if (checkoutResult.balance_before !== undefined) {
+        line += ` · 扣款前 ¥${checkoutResult.balance_before!.toFixed(2)} → 扣款后 ¥${checkoutResult.balance_after!.toFixed(2)}`;
+      }
+      memberHtml = `<div style="font-size:7px;margin-top:2px;line-height:1.4;color:#888">${line}</div>`;
+    }
 
     // Get current operator info
     let operatorName = '';
@@ -481,7 +501,7 @@ export default function CashierPage() {
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'PingFang SC','Microsoft YaHei',sans-serif; color:#000; padding:3px; }
-  @page { margin:1.5mm; size:80mm 60mm; }
+  @page { margin:1.5mm; size:80mm auto; }
   .dot { border-top:1px dashed #999; margin:2px 0; }
   .bar { border-top:1.5px solid #333; margin:2px 0; }
 </style>
@@ -493,7 +513,7 @@ export default function CashierPage() {
 </div>
 
 <div style="text-align:center;font-weight:bold;font-size:11px;padding:1px 0;border-top:1.5px solid #333;border-bottom:1.5px solid #333;letter-spacing:3px;margin-bottom:2px">
-  入 园 门 票
+  入园人数:<span style="font-size:8px;font-weight:normal;color:#e53e3e;letter-spacing:0">${entryCountsLine}</span>
 </div>
 
 <div style="text-align:right;font-size:8px;color:#666">票号：${ticketNo}</div>
@@ -523,7 +543,6 @@ export default function CashierPage() {
         </div>
       </td>
     </tr>
-    ${balanceHtml}
   </tbody>
 </table>
 
@@ -601,6 +620,30 @@ ${operatorHtml}
                 className="w-full pl-10 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Today's Entry Counts */}
+        <div className="px-4 pt-2 pb-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-slate-500">今日入园</span>
+            {entryCounts.list.length === 0 ? (
+              <span className="text-xs text-slate-400">暂无记录</span>
+            ) : (
+              <>
+                {entryCounts.list.map(item => (
+                  <span key={item.product_id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                    {item.product_name}
+                    <span className="bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded-full text-[10px] font-bold">{item.count}</span>
+                  </span>
+                ))}
+              </>
+            )}
+            {entryCounts.total > 0 && (
+              <span className="ml-auto text-xs font-bold text-slate-600">
+                合计 <span className="text-indigo-600 text-sm">{entryCounts.total}</span> 人
+              </span>
+            )}
           </div>
         </div>
 

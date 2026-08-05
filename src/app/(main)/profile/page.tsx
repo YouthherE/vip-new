@@ -89,7 +89,40 @@ export default function ProfilePage() {
     }
 
     fetchStats();
+    fetchLatestProfile();
   }, []);
+
+  // 从服务端获取最新的用户资料（管理员可能已修改该用户信息）
+  const fetchLatestProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/user/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (res.ok && json.code === 200 && json.data) {
+        const fresh = json.data;
+        localStorage.setItem('user', JSON.stringify(fresh));
+        setUserData(fresh);
+        
+        const avatar = fresh.avatar || `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(fresh.username || 'Felix')}`;
+        const updatedDefaults = {
+          username: fresh.username || '',
+          email: fresh.email || '',
+          phone: fresh.phone || '',
+          address: fresh.address || '',
+          bio: fresh.bio || '',
+          avatar,
+          password: '',
+          confirmPassword: ''
+        };
+        setFormData(updatedDefaults);
+        setSavedData(updatedDefaults);
+      }
+    } catch (_) {
+      // 失败则继续使用 localStorage 中的旧数据
+    }
+  };
 
   const fetchStats = async () => {
     try {

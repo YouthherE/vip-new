@@ -20,7 +20,10 @@ export async function GET(request: Request) {
         // ── Single order detail ──
         if (id) {
             const order = await db.prepare(
-                'SELECT * FROM orders WHERE id = ?'
+                `SELECT o.*, u.username as operator_name
+                 FROM orders o
+                 LEFT JOIN users u ON o.operator_id = u.id
+                 WHERE o.id = ?`
             ).bind(parseInt(id)).first<any>();
 
             if (!order) {
@@ -45,7 +48,7 @@ export async function GET(request: Request) {
         }
 
         // ── List query ──
-        let baseQuery = 'FROM orders o';
+        let baseQuery = 'FROM orders o LEFT JOIN users u ON o.operator_id = u.id';
         const params: any[] = [];
         const conditions: string[] = [];
 
@@ -78,7 +81,7 @@ export async function GET(request: Request) {
         const total = countResult?.total || 0;
 
         // Get data
-        const query = `SELECT o.* ${baseQuery} ORDER BY o.id DESC LIMIT ? OFFSET ?`;
+        const query = `SELECT o.*, u.username as operator_name ${baseQuery} ORDER BY o.id DESC LIMIT ? OFFSET ?`;
         params.push(pageSize, offset);
 
         const results = await db.prepare(query).bind(...params).all();

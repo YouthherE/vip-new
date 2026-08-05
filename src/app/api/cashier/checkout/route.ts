@@ -2,6 +2,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
 import { getChinaTime } from '@/lib/utils/time';
+import { verifyJWT } from '@/lib/utils/jwt';
 
 function generateOrderNo(): string {
     const now = new Date();
@@ -15,10 +16,54 @@ function generateOrderNo(): string {
     return `PO${y}${m}${d}${h}${min}${s}${rand}`;
 }
 
+/** 从请求 Authorization header 中提取操作人 ID */
+async function getOperator(request: Request): Promise<number> {
+    try {
+        const authHeader = request.headers.get('Authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) return 0;
+        const token = authHeader.split(' ')[1];
+        const payload = await verifyJWT(token);
+        return (payload?.id as number) || 0;
+    } catch {
+        return 0;
+    }
+}
+
+/** 累加入园人数计数（每种商品单独计数，每天独立），返回累加后的最新计数 */
+async function incrementEntryCounts(
+    db: any,
+    items: { product_id: number; product_name: string; quantity: number }[],
+    today: string
+): Promise<Map<number, number>> {
+    const countMap = new Map<number, number>();
+
+    for (const item of items) {
+        if (item.quantity <= 0) continue;
+        const existing = await db.prepare(
+            'SELECT id, count FROM entry_counts WHERE entry_date = ? AND product_id = ?'
+        ).bind(today, item.product_id).first();
+
+        if (existing) {
+            await db.prepare(
+                'UPDATE entry_counts SET count = count + ?, updated_at = ? WHERE id = ?'
+            ).bind(item.quantity, getChinaTime(), existing.id).run();
+            countMap.set(item.product_id, (existing as any).count + item.quantity);
+        } else {
+            await db.prepare(
+                'INSERT INTO entry_counts (entry_date, product_id, product_name, count, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+            ).bind(today, item.product_id, item.product_name, item.quantity, getChinaTime(), getChinaTime()).run();
+            countMap.set(item.product_id, item.quantity);
+        }
+    }
+
+    return countMap;
+}
+
 export async function POST(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+        const operator = await getOperator(request);
         const body = await request.json() as any;
         const { member_id, price_type, items } = body;
 
@@ -104,10 +149,11 @@ export async function POST(request: Request) {
         // ── Normal price: just create order ──
         if (price_type === 'normal') {
             const now = getChinaTime();
+            const today = now.split(' ')[0];
             const result = await db.prepare(
-                `INSERT INTO orders (order_no, price_type, total_amount, item_count, status, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, 1, ?, ?)`
-            ).bind(orderNo, 'normal', totalAmount, itemCount, now, now).run();
+                `INSERT INTO orders (order_no, price_type, total_amount, item_count, status, operator_id, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, 1, ?, ?, ?)`
+            ).bind(orderNo, 'normal', totalAmount, itemCount, operator, now, now).run();
 
             if (!result.success) {
                 return jsonResponse(error(500, '创建订单失败'), 500);
@@ -126,6 +172,9 @@ export async function POST(request: Request) {
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 ).bind(orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, now).run();
             }
+
+            // 累加入园计数
+            const entryCountMap = await incrementEntryCounts(db, orderItemsData, today);
 
             await writeOperationLog(request, db, {
                 target_type: 'order',
@@ -149,6 +198,7 @@ export async function POST(request: Request) {
                     member_price: oi.member_price,
                     quantity: oi.quantity,
                     subtotal: oi.subtotal,
+                    entry_count: entryCountMap.get(oi.product_id) || 0,
                 })),
             }, '购买成功'));
         }
@@ -186,10 +236,11 @@ export async function POST(request: Request) {
 
         // Create order
         const nowOrder = getChinaTime();
+        const today = nowOrder.split(' ')[0];
         const orderResult = await db.prepare(
-            `INSERT INTO orders (order_no, member_id, member_name, member_phone, price_type, total_amount, item_count, balance_before, balance_after, status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
-        ).bind(orderNo, member_id, member.name, member.phone, 'member', totalAmount, itemCount, balanceBefore, balanceAfter, nowOrder, nowOrder).run();
+            `INSERT INTO orders (order_no, member_id, member_name, member_phone, price_type, total_amount, item_count, balance_before, balance_after, status, operator_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`
+        ).bind(orderNo, member_id, member.name, member.phone, 'member', totalAmount, itemCount, balanceBefore, balanceAfter, operator, nowOrder, nowOrder).run();
 
         if (!orderResult.success) {
             return jsonResponse(error(500, '创建订单失败'), 500);
@@ -207,6 +258,9 @@ export async function POST(request: Request) {
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
             ).bind(orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, nowOrder).run();
         }
+
+        // 累加入园计数
+        const entryCountMap = await incrementEntryCounts(db, orderItemsData, today);
 
         // Write transaction record (try with new columns, fall back to old)
         try {
@@ -253,6 +307,7 @@ export async function POST(request: Request) {
                 member_price: oi.member_price,
                 quantity: oi.quantity,
                 subtotal: oi.subtotal,
+                entry_count: entryCountMap.get(oi.product_id) || 0,
             })),
         }, '购买成功'));
     } catch (e: any) {

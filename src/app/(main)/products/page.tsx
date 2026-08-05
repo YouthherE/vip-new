@@ -12,6 +12,7 @@ import {
 interface Product {
   id: number;
   name: string;
+  code: string;
   regular_price: number;
   member_price: number;
   image: string;
@@ -48,6 +49,7 @@ export default function ProductsPage() {
   const [productForm, setProductForm] = useState({
     id: 0,
     name: '',
+    code: '',
     regular_price: '',
     member_price: '',
     image: ''
@@ -263,7 +265,7 @@ export default function ProductsPage() {
 
   const openAdd = () => {
     setFormMode('add');
-    setProductForm({ id: 0, name: '', regular_price: '', member_price: '', image: '' });
+    setProductForm({ id: 0, name: '', code: '', regular_price: '', member_price: '', image: '' });
     setImagePreview('');
     setFormErrors({});
     setIsFormOpen(true);
@@ -274,6 +276,7 @@ export default function ProductsPage() {
     setProductForm({
       id: product.id,
       name: product.name,
+      code: product.code || '',
       regular_price: String(product.regular_price),
       member_price: String(product.member_price),
       image: product.image || ''
@@ -507,7 +510,20 @@ export default function ProductsPage() {
                   )}
                   <p className="text-xs text-slate-400">{productForm.name.length}/50</p>
                 </div>
-
+                {/* Product Code */}
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-slate-700">
+                    物品编码 <span className="text-xs text-slate-400 font-normal">（选填）</span>
+                  </label>
+                  <input
+                      maxLength={50}
+                      value={productForm.code}
+                      onChange={e => setProductForm({ ...productForm, code: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      placeholder="请输入物品编码"
+                  />
+                  <p className="text-xs text-slate-400">{productForm.code.length}/50</p>
+                </div>
                 {/* Prices */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">

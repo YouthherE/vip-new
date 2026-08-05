@@ -4,6 +4,45 @@ import { hashPassword } from '@/lib/utils/password';
 import { verifyJWT } from '@/lib/utils/jwt';
 import { getChinaTime } from '@/lib/utils/time';
 
+/** 从 Authorization header 中提取 token 并验证用户身份 */
+async function authenticate(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+
+  const token = authHeader.split(' ')[1];
+  const payload = await verifyJWT(token);
+  if (!payload || !payload.id) return null;
+
+  return payload.id as number;
+}
+
+/** GET /api/user/profile - 获取当前登录用户的最新资料 */
+export async function GET(request: Request) {
+  try {
+    const userId = await authenticate(request);
+    if (!userId) {
+      return jsonResponse(error(401, 'Unauthorized'), 401);
+    }
+
+    const { env } = await getCloudflareContext();
+    const db = (env as CloudflareEnv).DB;
+
+    const user = await db
+      .prepare('SELECT id, username, avatar, email, phone, address, bio, role, status, created_at, updated_at FROM users WHERE id = ?')
+      .bind(userId)
+      .first() as Record<string, unknown> | null;
+
+    if (!user) {
+      return jsonResponse(error(404, '用户不存在'), 404);
+    }
+
+    return jsonResponse(success(user));
+  } catch (e: unknown) {
+    console.error('Get profile error:', e);
+    return jsonResponse(error(500, (e as Error).message || 'Internal Server Error'), 500);
+  }
+}
+
 export async function PUT(request: Request) {
     try {
         const { env } = await getCloudflareContext();

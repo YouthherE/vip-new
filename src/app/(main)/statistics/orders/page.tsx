@@ -46,6 +46,7 @@ interface Order {
   balance_after: number | null;
   status: number;
   remark: string;
+  operator_name: string;
   created_at: string;
   updated_at: string;
 }
@@ -241,13 +242,14 @@ export default function OrdersPage() {
                 <th className="px-4 py-3 whitespace-nowrap">数量</th>
                 <th className="px-4 py-3 whitespace-nowrap">时间</th>
                 <th className="px-4 py-3 whitespace-nowrap">状态</th>
+                <th className="px-4 py-3 whitespace-nowrap">操作人</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <TableSkeleton columns={7} rows={10} />
+                <TableSkeleton columns={8} rows={10} />
               ) : orders.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-400">暂无订单数据</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-400">暂无订单数据</td></tr>
               ) : (
                 orders.map((order) => (
                   <tr
@@ -290,6 +292,9 @@ export default function OrdersPage() {
                       }`}>
                         {order.status === 1 ? '已完成' : '已取消'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 text-xs">
+                      {order.operator_name || '-'}
                     </td>
                   </tr>
                 ))
@@ -374,6 +379,10 @@ export default function OrdersPage() {
                       <div>
                         <span className="text-slate-400">下单时间</span>
                         <p className="text-xs">{new Date(detail.order.created_at).toLocaleString('zh-CN')}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">操作人</span>
+                        <p className="font-medium text-slate-700">{detail.order.operator_name || '-'}</p>
                       </div>
                       {detail.order.remark && (
                         <div className="col-span-2">

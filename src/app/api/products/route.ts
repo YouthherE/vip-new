@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
         const body = await request.json() as any;
-        const { name, regular_price, member_price, image } = body;
+        const { name, code, regular_price, member_price, image } = body;
 
         // Validation
         if (!name || !name.trim()) {
@@ -85,9 +85,10 @@ export async function POST(request: Request) {
 
         const now = getChinaTime();
         const result = await db.prepare(
-            'INSERT INTO products (name, regular_price, member_price, image, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO products (name, code, regular_price, member_price, image, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         ).bind(
             name.trim(),
+            (code || '').trim(),
             regular_price,
             member_price,
             image || '',
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
             target_type: 'product',
             target_id: undefined,
             action: 'create',
-            content: JSON.stringify({ name: name.trim(), regular_price, member_price }),
+            content: JSON.stringify({ name: name.trim(), code: (code || '').trim(), regular_price, member_price }),
         });
 
         return jsonResponse(success(null, '商品上架成功'));
@@ -119,7 +120,7 @@ export async function PUT(request: Request) {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
         const body = await request.json() as any;
-        const { id, name, regular_price, member_price, image } = body;
+        const { id, name, code, regular_price, member_price, image } = body;
 
         if (!id) {
             return jsonResponse(error(400, '商品ID不能为空'), 400);
@@ -150,10 +151,11 @@ export async function PUT(request: Request) {
 
         const result = await db.prepare(`
             UPDATE products
-            SET name = ?, regular_price = ?, member_price = ?, image = ?, updated_at = ?
+            SET name = ?, code = ?, regular_price = ?, member_price = ?, image = ?, updated_at = ?
             WHERE id = ?
         `).bind(
             name.trim(),
+            (code || '').trim(),
             regular_price,
             member_price,
             image || '',
@@ -169,7 +171,7 @@ export async function PUT(request: Request) {
             target_type: 'product',
             target_id: id,
             action: 'update',
-            content: JSON.stringify({ name: name.trim(), regular_price, member_price }),
+            content: JSON.stringify({ name: name.trim(), code: (code || '').trim(), regular_price, member_price }),
         });
 
         return jsonResponse(success(null, '商品更新成功'));
