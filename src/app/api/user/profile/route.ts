@@ -2,6 +2,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { hashPassword } from '@/lib/utils/password';
 import { verifyJWT } from '@/lib/utils/jwt';
+import { getChinaTime } from '@/lib/utils/time';
 
 export async function PUT(request: Request) {
     try {
@@ -25,7 +26,7 @@ export async function PUT(request: Request) {
 
         // 2. Parse Body
         const body = await request.json() as any;
-        const { username, password } = body;
+        const { username, password, email, phone, address, bio } = body;
 
         if (!username) {
             return jsonResponse(error(400, '用户名不能为空'), 400);
@@ -47,8 +48,27 @@ export async function PUT(request: Request) {
         }
 
         // 4. Update User
-        let updateQuery = 'UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP';
-        const params: any[] = [username];
+        let updateQuery = 'UPDATE users SET username = ?, updated_at = ?';
+        const now = getChinaTime();
+        const params: any[] = [username, now];
+
+        // Extended profile fields
+        if (email !== undefined) {
+            updateQuery += ', email = ?';
+            params.push(email);
+        }
+        if (phone !== undefined) {
+            updateQuery += ', phone = ?';
+            params.push(phone);
+        }
+        if (address !== undefined) {
+            updateQuery += ', address = ?';
+            params.push(address);
+        }
+        if (bio !== undefined) {
+            updateQuery += ', bio = ?';
+            params.push(bio);
+        }
 
         if (password) {
             const hashedPassword = await hashPassword(password);
@@ -66,7 +86,7 @@ export async function PUT(request: Request) {
         }
 
         // 5. Return updated user info (excluding password)
-        const updatedUser = await db.prepare('SELECT id, username, avatar, status, created_at, updated_at FROM users WHERE id = ?').bind(userId).first();
+        const updatedUser = await db.prepare('SELECT id, username, avatar, email, phone, address, bio, status, created_at, updated_at FROM users WHERE id = ?').bind(userId).first();
 
         return jsonResponse(success(updatedUser, '个人信息更新成功'));
 

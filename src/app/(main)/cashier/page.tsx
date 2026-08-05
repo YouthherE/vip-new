@@ -48,100 +48,181 @@ interface CheckoutItem {
   product_id: number;
   product_name: string;
   sold_price: number;
+  normal_price: number;
+  member_price: number;
   quantity: number;
   subtotal: number;
 }
 
-// ──── Print Receipt Component ────
-function PrintReceiptContent({ result }: { result: CheckoutResult }) {
-  const now = new Date();
+// ──── Print Ticket Component ────
+// Print spec: 80mm × 60mm thermal receipt
+function PrintTicketContent({ result }: { result: CheckoutResult }) {
   const ticketNo = result.order_no;
-  const qrData = encodeURIComponent(`订单号:${result.order_no}\n时间:${result.created_at}`);
+  const entryDate = new Date(result.created_at);
+  const entryDateStr = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}-${String(entryDate.getDate()).padStart(2, '0')}`;
+  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+  const weekDay = weekDays[entryDate.getDay()];
+  const printTime = result.created_at;
+  const qrData = encodeURIComponent(`票号:${ticketNo}\n入园:${entryDateStr}`);
+
+  const totalHeads = result.items.reduce((s, i) => s + i.quantity, 0);
+
+  // Get current operator info from localStorage
+  let operatorName = '';
+  let operatorPhone = '';
+  let operatorAddress = '';
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      operatorName = user.username || '';
+      operatorPhone = user.phone || '';
+      operatorAddress = user.address || '';
+    }
+  } catch {}
 
   return (
     <>
       <style>{`
         @media print {
-          @page { margin: 2mm; size: 80mm auto; }
-          body { margin: 0; }
-          .print-receipt { display: block !important; }
-          .print-receipt * { color: #000 !important; }
+          @page { margin: 1.5mm; size: 80mm 60mm; }
+          body { margin: 0; padding: 0; }
         }
+        .tk { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; color: #000; }
+        .tk-dot { border-top: 1px dashed #999; margin: 2px 0; }
+        .tk-bar { border-top: 1.5px solid #333; margin: 2px 0; }
       `}</style>
+
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-        <div style={{ fontWeight: 'bold', fontSize: '15px', letterSpacing: '1px' }}>儿童乐园</div>
-        <div style={{ fontSize: '13px', fontWeight: 'bold', marginTop: '4px' }}>购 买 凭 证</div>
+      <div className="tk" style={{ textAlign: 'center', marginBottom: '2px' }}>
+        <span style={{ fontWeight: 'bold', fontSize: '13px', letterSpacing: '1px' }}>星光儿童乐园</span>
       </div>
 
-      <div style={{ borderTop: '1px dashed #999', margin: '6px 0' }} />
-
-      {/* Order Info */}
-      <div style={{ lineHeight: '1.6', fontSize: '12px' }}>
-        <div>票号：{ticketNo}</div>
-        <div>时间：{now.toLocaleString('zh-CN')}</div>
-        <div>类型：{result.price_type === 'member' ? '会员价' : '普通价'}</div>
-        {result.member_name && (
-          <div>会员：{result.member_name}</div>
-        )}
+      {/* Ticket Title */}
+      <div className="tk" style={{
+        textAlign: 'center', fontWeight: 'bold', fontSize: '11px',
+        padding: '1px 0', borderTop: '1.5px solid #333', borderBottom: '1.5px solid #333',
+        letterSpacing: '3px', marginBottom: '2px'
+      }}>
+        入 园 门 票
       </div>
 
-      <div style={{ borderTop: '1px dashed #999', margin: '6px 0' }} />
+      <div className="tk" style={{ textAlign: 'right', fontSize: '8px', color: '#666' }}>
+        票号：{ticketNo}
+      </div>
 
-      {/* Items */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #ddd' }}>
-            <th style={{ textAlign: 'left', padding: '2px 0', fontWeight: 'normal' }}>商品</th>
-            <th style={{ textAlign: 'center', padding: '2px 0', fontWeight: 'normal', width: '30px' }}>数量</th>
-            <th style={{ textAlign: 'right', padding: '2px 0', fontWeight: 'normal', width: '54px' }}>金额</th>
-          </tr>
-        </thead>
+      <div className="tk-dot" />
+
+      {/* Entry Date */}
+      <div className="tk" style={{
+        textAlign: 'center', background: '#f5f5f5',
+        padding: '3px 0', margin: '2px 0'
+      }}>
+        <span style={{ fontSize: '8px', color: '#999' }}>入园日期 </span>
+        <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{entryDateStr}</span>
+        <span style={{ fontSize: '9px', color: '#666' }}> 星期{weekDay}</span>
+      </div>
+
+      <div className="tk-dot" />
+
+      {/* Visitor + Price (compact table, 2 columns) */}
+      <table className="tk" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', lineHeight: '1.4' }}>
         <tbody>
-          {result.items.map((item, i) => (
-            <tr key={i}>
-              <td style={{ padding: '2px 0', wordBreak: 'break-all' }}>{item.product_name}</td>
-              <td style={{ padding: '2px 0', textAlign: 'center' }}>{item.quantity}</td>
-              <td style={{ padding: '2px 0', textAlign: 'right' }}>{item.subtotal.toFixed(2)}</td>
+          <tr>
+            <td style={{ width: '55%', verticalAlign: 'top', paddingRight: '4px' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '9px', marginBottom: '1px' }}>游客信息</div>
+              <div>{result.price_type === 'member' ? '🎫会员票' : '🎫散客票'} · {totalHeads}位</div>
+              {result.items.map((item, i) => (
+                <div key={i} style={{ fontSize: '8px', color: '#555' }}>
+                  {item.product_name} ×{item.quantity}
+                </div>
+              ))}
+            </td>
+            <td style={{ width: '45%', verticalAlign: 'top', borderLeft: '1px dashed #ddd', paddingLeft: '4px' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '9px', marginBottom: '1px' }}>金额</div>
+              {result.items.map((item, i) => {
+                const itemRegularTotal = item.normal_price * item.quantity;
+                const isMember = result.price_type === 'member';
+                return (
+                  <div key={i}>
+                    {isMember && (
+                      <div style={{ fontSize: '7px', display: 'flex', justifyContent: 'space-between', color: '#999', textDecoration: 'line-through' }}>
+                        <span>{item.product_name.slice(0, 4)}</span>
+                        <span>¥{itemRegularTotal.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div style={{ fontSize: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>{item.product_name.slice(0, 4)}{isMember ? ' 会员' : ''}</span>
+                      <span>¥{item.subtotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {result.price_type === 'member' && (
+                <div style={{ fontSize: '7px', display: 'flex', justifyContent: 'space-between', color: '#e53e3e' }}>
+                  <span>优惠</span>
+                  <span>-¥{(result.items.reduce((s, i) => s + i.normal_price * i.quantity, 0) - result.total_amount).toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ borderTop: '1px solid #333', margin: '1px 0', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                <span>实付</span>
+                <span>¥{result.total_amount.toFixed(2)}</span>
+              </div>
+            </td>
+          </tr>
+          {/* Member balance */}
+          {result.price_type === 'member' && result.balance_before !== undefined && (
+            <tr>
+              <td colSpan={2} style={{ fontSize: '7px', color: '#888', paddingTop: '2px' }}>
+                扣款前 ¥{result.balance_before!.toFixed(2)} → 扣款后 ¥{result.balance_after!.toFixed(2)}
+              </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
 
-      <div style={{ borderTop: '1px solid #333', margin: '6px 0' }} />
-
-      {/* Total */}
-      <div style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '14px', marginBottom: '6px' }}>
-        合计：¥ {result.total_amount.toFixed(2)}
-      </div>
-
-      {/* Balance info for member purchase */}
-      {result.price_type === 'member' && result.balance_before !== undefined && (
-        <>
-          <div style={{ borderTop: '1px dashed #999', margin: '6px 0' }} />
-          <div style={{ fontSize: '11px', lineHeight: '1.5' }}>
-            <div>扣款前：¥ {result.balance_before!.toFixed(2)}</div>
-            <div>扣款后：¥ {result.balance_after!.toFixed(2)}</div>
-          </div>
-        </>
+      {/* Member info (compact) */}
+      {result.price_type === 'member' && result.member_name && (
+        <div className="tk" style={{ fontSize: '8px', marginTop: '2px', lineHeight: '1.3' }}>
+          💳 {result.member_name}{result.member_phone ? ` · ${result.member_phone}` : ''}
+        </div>
       )}
 
-      <div style={{ borderTop: '1px dashed #999', margin: '8px 0' }} />
+      <div className="tk-dot" />
 
       {/* QR Code */}
-      <div style={{ textAlign: 'center', margin: '8px 0' }}>
+      <div className="tk" style={{ textAlign: 'center', margin: '3px 0' }}>
         <img
-          src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${qrData}`}
-          alt="QR Code"
-          width="90"
-          height="90"
-          style={{ display: 'inline-block', maxWidth: '100%' }}
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${qrData}`}
+          alt="入园码"
+          width="65"
+          height="65"
+          style={{ display: 'inline-block', border: '1px solid #ccc', padding: '1px' }}
         />
-        <div style={{ fontSize: '9px', color: '#999', marginTop: '2px' }}>扫码验票</div>
+        <div style={{ fontSize: '8px', fontWeight: 'bold', marginTop: '1px' }}>扫码入园</div>
+        <div style={{ fontSize: '7px', color: '#999' }}>闸机扫码核销</div>
       </div>
 
-      <div style={{ textAlign: 'center', fontSize: '10px', color: '#999', marginTop: '8px' }}>
-        感谢惠顾 · 欢迎再次光临
+      <div className="tk-bar" />
+
+      {/* Operator */}
+      {operatorName && (
+        <div className="tk" style={{ textAlign: 'center', fontSize: '7px', color: '#888', marginBottom: '2px' }}>
+          操作人：{operatorName}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="tk" style={{ fontSize: '7px', color: '#888', textAlign: 'center', lineHeight: '1.4' }}>
+        {operatorPhone && <div>📞客服电话：{operatorPhone} · 当日有效仅限本人</div>}
+        {operatorAddress && <div>📍{operatorAddress}</div>}
+        <div>退票：未使用可退，过期作废</div>
+      </div>
+
+      <div className="tk-dot" />
+
+      <div className="tk" style={{ textAlign: 'center', fontSize: '7px', color: '#aaa' }}>
+        出票：{printTime}
       </div>
     </>
   );
@@ -333,24 +414,65 @@ export default function CashierPage() {
   const handlePrint = () => {
     if (!checkoutResult) return;
 
-    const now = new Date();
-    const itemsHtml = checkoutResult.items.map(item => `
-      <tr>
-        <td style="padding:2px 0;word-break:break-all">${item.product_name}</td>
-        <td style="padding:2px 0;text-align:center">${item.quantity}</td>
-        <td style="padding:2px 0;text-align:right">${item.subtotal.toFixed(2)}</td>
-      </tr>
-    `).join('');
+    const ticketNo = checkoutResult.order_no;
+    const entryDate = new Date(checkoutResult.created_at);
+    const entryDateStr = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}-${String(entryDate.getDate()).padStart(2, '0')}`;
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+    const weekDay = weekDays[entryDate.getDay()];
+    const printTime = checkoutResult.created_at;
+    const totalHeads = checkoutResult.items.reduce((s, i) => s + i.quantity, 0);
 
-    const balanceHtml = checkoutResult.price_type === 'member' && checkoutResult.balance_before !== undefined ? `
-      <div style="border-top:1px dashed #999;margin:6px 0"></div>
-      <div style="font-size:11px;line-height:1.5">
-        <div>扣款前：¥ ${checkoutResult.balance_before!.toFixed(2)}</div>
-        <div>扣款后：¥ ${checkoutResult.balance_after!.toFixed(2)}</div>
-      </div>
-    ` : '';
+    // Visitor items list
+    const visitorItemsHtml = checkoutResult.items.map(item =>
+      `<div style="font-size:8px;color:#555">${item.product_name} ×${item.quantity}</div>`
+    ).join('');
 
-    const qrData = encodeURIComponent(`订单号:${checkoutResult.order_no}\n时间:${checkoutResult.created_at}`);
+    // Price items list (with dual pricing for members)
+    const isMember = checkoutResult.price_type === 'member';
+    const regularTotal = checkoutResult.items.reduce((s, i) => s + i.normal_price * i.quantity, 0);
+    const priceItemsHtml = checkoutResult.items.map(item => {
+      const itemRegularTotal = item.normal_price * item.quantity;
+      let itemHtml = '';
+      if (isMember) {
+        itemHtml += `<div style="font-size:7px;display:flex;justify-content:space-between;color:#999;text-decoration:line-through"><span>${item.product_name.slice(0, 4)} 原价</span><span>¥${itemRegularTotal.toFixed(2)}</span></div>`;
+      }
+      itemHtml += `<div style="font-size:8px;display:flex;justify-content:space-between"><span>${item.product_name.slice(0, 4)}${isMember ? ' 会员' : ''}</span><span>¥${item.subtotal.toFixed(2)}</span></div>`;
+      return itemHtml;
+    }).join('');
+    // Discount line
+    const discountHtml = isMember
+      ? `<div style="font-size:7px;display:flex;justify-content:space-between;color:#e53e3e"><span>优惠</span><span>-¥${(regularTotal - checkoutResult.total_amount).toFixed(2)}</span></div>`
+      : '';
+
+    // Member section
+    const memberHtml = checkoutResult.price_type === 'member' && checkoutResult.member_name
+      ? `<div style="font-size:8px;margin-top:2px;line-height:1.3">💳 ${checkoutResult.member_name}${checkoutResult.member_phone ? ' · ' + checkoutResult.member_phone : ''}</div>`
+      : '';
+
+    // Balance line
+    const balanceHtml = checkoutResult.price_type === 'member' && checkoutResult.balance_before !== undefined
+      ? `<tr><td colspan="2" style="font-size:7px;color:#888;padding-top:2px">扣款前 ¥${checkoutResult.balance_before!.toFixed(2)} → 扣款后 ¥${checkoutResult.balance_after!.toFixed(2)}</td></tr>`
+      : '';
+
+    // Get current operator info
+    let operatorName = '';
+    let operatorPhone = '';
+    let operatorAddress = '';
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        operatorName = user.username || '';
+        operatorPhone = user.phone || '';
+        operatorAddress = user.address || '';
+      }
+    } catch {}
+
+    const operatorHtml = operatorName ? `<div style="text-align:center;font-size:7px;color:#888;margin-bottom:2px">操作人：${operatorName}</div>` : '';
+    const phoneHtml = operatorPhone ? `<div>📞客服电话：${operatorPhone} · 当日有效仅限本人</div>` : '';
+    const addressHtml = operatorAddress ? `<div>📍${operatorAddress}</div>` : '';
+
+    const qrData = encodeURIComponent(`票号:${ticketNo}\n入园:${entryDateStr}`);
 
     const html = `<!DOCTYPE html>
 <html>
@@ -358,40 +480,74 @@ export default function CashierPage() {
 <meta charset="utf-8">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: monospace; font-size: 12px; color: #000; padding: 10px; }
-  @page { margin: 2mm; size: 80mm auto; }
+  body { font-family:'PingFang SC','Microsoft YaHei',sans-serif; color:#000; padding:3px; }
+  @page { margin:1.5mm; size:80mm 60mm; }
+  .dot { border-top:1px dashed #999; margin:2px 0; }
+  .bar { border-top:1.5px solid #333; margin:2px 0; }
 </style>
 </head>
 <body>
-<div style="text-align:center;margin-bottom:8px">
-  <div style="font-weight:bold;font-size:15px;letter-spacing:1px">儿童乐园</div>
-  <div style="font-size:13px;font-weight:bold;margin-top:4px">购 买 凭 证</div>
+
+<div style="text-align:center;margin-bottom:2px">
+  <span style="font-weight:bold;font-size:13px;letter-spacing:1px">星光儿童乐园</span>
 </div>
-<div style="border-top:1px dashed #999;margin:6px 0"></div>
-<div style="line-height:1.6;font-size:12px">
-  <div>票号：${checkoutResult.order_no}</div>
-  <div>时间：${now.toLocaleString('zh-CN')}</div>
-  <div>类型：${checkoutResult.price_type === 'member' ? '会员价' : '普通价'}</div>
-  ${checkoutResult.member_name ? `<div>会员：${checkoutResult.member_name}</div>` : ''}
+
+<div style="text-align:center;font-weight:bold;font-size:11px;padding:1px 0;border-top:1.5px solid #333;border-bottom:1.5px solid #333;letter-spacing:3px;margin-bottom:2px">
+  入 园 门 票
 </div>
-<div style="border-top:1px dashed #999;margin:6px 0"></div>
-<table style="width:100%;border-collapse:collapse;font-size:11px">
-  <thead><tr style="border-bottom:1px solid #ddd">
-    <th style="text-align:left;padding:2px 0;font-weight:normal">商品</th>
-    <th style="text-align:center;padding:2px 0;font-weight:normal;width:30px">数量</th>
-    <th style="text-align:right;padding:2px 0;font-weight:normal;width:54px">金额</th>
-  </tr></thead>
-  <tbody>${itemsHtml}</tbody>
+
+<div style="text-align:right;font-size:8px;color:#666">票号：${ticketNo}</div>
+<div class="dot"></div>
+
+<div style="text-align:center;background:#f5f5f5;padding:3px 0;margin:2px 0">
+  <span style="font-size:8px;color:#999">入园日期 </span>
+  <span style="font-size:14px;font-weight:bold">${entryDateStr}</span>
+  <span style="font-size:9px;color:#666"> 星期${weekDay}</span>
+</div>
+<div class="dot"></div>
+
+<table style="width:100%;border-collapse:collapse;font-size:9px;line-height:1.4">
+  <tbody>
+    <tr>
+      <td style="width:55%;vertical-align:top;padding-right:4px">
+        <div style="font-weight:bold;font-size:9px;margin-bottom:1px">游客信息</div>
+        <div>${checkoutResult.price_type === 'member' ? '🎫会员票' : '🎫散客票'} · ${totalHeads}位</div>
+        ${visitorItemsHtml}
+      </td>
+      <td style="width:45%;vertical-align:top;border-left:1px dashed #ddd;padding-left:4px">
+        <div style="font-weight:bold;font-size:9px;margin-bottom:1px">金额</div>
+        ${priceItemsHtml}
+        ${discountHtml}
+        <div style="border-top:1px solid #333;margin:1px 0;display:flex;justify-content:space-between;font-weight:bold">
+          <span>实付</span><span>¥${checkoutResult.total_amount.toFixed(2)}</span>
+        </div>
+      </td>
+    </tr>
+    ${balanceHtml}
+  </tbody>
 </table>
-<div style="border-top:1px solid #333;margin:6px 0"></div>
-<div style="text-align:right;font-weight:bold;font-size:14px;margin-bottom:6px">合计：¥ ${checkoutResult.total_amount.toFixed(2)}</div>
-${balanceHtml}
-<div style="border-top:1px dashed #999;margin:8px 0"></div>
-<div style="text-align:center;margin:8px 0">
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${qrData}" width="90" height="90" style="display:inline-block;max-width:100%">
-  <div style="font-size:9px;color:#999;margin-top:2px">扫码验票</div>
+
+${memberHtml}
+<div class="dot"></div>
+
+<div style="text-align:center;margin:3px 0">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${qrData}" width="65" height="65" style="display:inline-block;border:1px solid #ccc;padding:1px">
+  <div style="font-size:8px;font-weight:bold;margin-top:1px">扫码入园</div>
+  <div style="font-size:7px;color:#999">闸机扫码核销</div>
 </div>
-<div style="text-align:center;font-size:10px;color:#999;margin-top:8px">感谢惠顾 · 欢迎再次光临</div>
+<div class="bar"></div>
+
+${operatorHtml}
+
+<div style="font-size:7px;color:#888;text-align:center;line-height:1.4">
+  ${phoneHtml}
+  ${addressHtml}
+  <div>退票：未使用可退，过期作废</div>
+</div>
+<div class="dot"></div>
+
+<div style="text-align:center;font-size:7px;color:#aaa">出票：${printTime}</div>
+
 </body>
 </html>`;
 
@@ -767,8 +923,8 @@ ${balanceHtml}
 
             {/* Receipt Preview */}
             <div className="overflow-y-auto p-6 flex justify-center bg-slate-100">
-              <div className="bg-white shadow-lg" style={{ width: '260px', minHeight: '360px', padding: '16px 14px', fontFamily: 'monospace', fontSize: '12px' }}>
-                <PrintReceiptContent result={checkoutResult} />
+              <div className="bg-white shadow-lg" style={{ width: '280px', minHeight: '400px', padding: '16px 14px', fontFamily: "'PingFang SC', 'Microsoft YaHei', sans-serif", fontSize: '12px' }}>
+                <PrintTicketContent result={checkoutResult} />
               </div>
             </div>
 

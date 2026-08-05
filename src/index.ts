@@ -7,6 +7,8 @@
  *   npx wrangler deploy --config wrangler.toml
  */
 
+import { getChinaTime } from '@/lib/utils/time';
+
 export interface Env {
     DB: D1Database;
     CRON_SECRET?: string;
@@ -16,14 +18,15 @@ async function checkExpiredMembers(env: Env): Promise<{ disabledCount: number; d
     const db = env.DB;
 
     // Find active members whose membership has expired
+    const now = getChinaTime();
     const expired = await db.prepare(`
         SELECT id, name, phone, cartype, expired_at
         FROM members
         WHERE status = 'active'
           AND expired_at IS NOT NULL
           AND expired_at != ''
-          AND datetime(expired_at) < datetime('now', 'localtime')
-    `).all<{
+          AND datetime(expired_at) < ?
+    `).bind(now).all<{
         id: number;
         name: string;
         phone: string;
@@ -42,9 +45,10 @@ async function checkExpiredMembers(env: Env): Promise<{ disabledCount: number; d
     const ids = expiredMembers.map((m) => m.id);
     const placeholders = ids.map(() => '?').join(',');
 
+    const updateTime = getChinaTime();
     const result = await db.prepare(
-        `UPDATE members SET status = 'disabled', updated_at = datetime('now', 'localtime') WHERE id IN (${placeholders})`
-    ).bind(...ids).run();
+        `UPDATE members SET status = 'disabled', updated_at = ? WHERE id IN (${placeholders})`
+    ).bind(updateTime, ...ids).run();
 
     if (!result.success) {
         throw new Error('Failed to update member statuses');
@@ -54,7 +58,7 @@ async function checkExpiredMembers(env: Env): Promise<{ disabledCount: number; d
     for (const m of expiredMembers) {
         await db.prepare(
             `INSERT INTO product_operation_logs (target_type, target_id, action, content, created_at)
-             VALUES ('member', ?, 'auto_disable', ?, datetime('now', 'localtime'))`
+             VALUES ('member', ?, 'auto_disable', ?, ?)`
         ).bind(
             m.id,
             JSON.stringify({
@@ -63,7 +67,8 @@ async function checkExpiredMembers(env: Env): Promise<{ disabledCount: number; d
                 phone: m.phone,
                 cartype: m.cartype,
                 expired_at: m.expired_at,
-            })
+            }),
+            getChinaTime()
         ).run();
     }
 

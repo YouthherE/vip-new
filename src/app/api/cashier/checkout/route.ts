@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
+import { getChinaTime } from '@/lib/utils/time';
 
 function generateOrderNo(): string {
     const now = new Date();
@@ -102,10 +103,11 @@ export async function POST(request: Request) {
 
         // ── Normal price: just create order ──
         if (price_type === 'normal') {
+            const now = getChinaTime();
             const result = await db.prepare(
-                `INSERT INTO orders (order_no, price_type, total_amount, item_count, status)
-                 VALUES (?, ?, ?, ?, 1)`
-            ).bind(orderNo, 'normal', totalAmount, itemCount).run();
+                `INSERT INTO orders (order_no, price_type, total_amount, item_count, status, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, 1, ?, ?)`
+            ).bind(orderNo, 'normal', totalAmount, itemCount, now, now).run();
 
             if (!result.success) {
                 return jsonResponse(error(500, '创建订单失败'), 500);
@@ -120,9 +122,9 @@ export async function POST(request: Request) {
             // Insert order items
             for (const oi of orderItemsData) {
                 await db.prepare(
-                    `INSERT INTO order_items (order_id, product_id, product_name, product_image, normal_price, member_price, sold_price, price_type, quantity, subtotal)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-                ).bind(orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal).run();
+                    `INSERT INTO order_items (order_id, product_id, product_name, product_image, normal_price, member_price, sold_price, price_type, quantity, subtotal, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                ).bind(orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, now).run();
             }
 
             await writeOperationLog(request, db, {
@@ -138,11 +140,13 @@ export async function POST(request: Request) {
                 price_type: 'normal',
                 total_amount: totalAmount,
                 item_count: itemCount,
-                created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                created_at: now,
                 items: orderItemsData.map(oi => ({
                     product_id: oi.product_id,
                     product_name: oi.product_name,
                     sold_price: oi.sold_price,
+                    normal_price: oi.normal_price,
+                    member_price: oi.member_price,
                     quantity: oi.quantity,
                     subtotal: oi.subtotal,
                 })),
@@ -171,19 +175,21 @@ export async function POST(request: Request) {
         const balanceAfter = balanceBefore - totalAmount;
 
         // Update member balance
+        const nowMember = getChinaTime();
         const updateResult = await db.prepare(
-            'UPDATE members SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-        ).bind(balanceAfter, member_id).run();
+            'UPDATE members SET balance = ?, updated_at = ? WHERE id = ?'
+        ).bind(balanceAfter, nowMember, member_id).run();
 
         if (!updateResult.success) {
             return jsonResponse(error(500, '扣款失败'), 500);
         }
 
         // Create order
+        const nowOrder = getChinaTime();
         const orderResult = await db.prepare(
-            `INSERT INTO orders (order_no, member_id, member_name, member_phone, price_type, total_amount, item_count, balance_before, balance_after, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
-        ).bind(orderNo, member_id, member.name, member.phone, 'member', totalAmount, itemCount, balanceBefore, balanceAfter).run();
+            `INSERT INTO orders (order_no, member_id, member_name, member_phone, price_type, total_amount, item_count, balance_before, balance_after, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+        ).bind(orderNo, member_id, member.name, member.phone, 'member', totalAmount, itemCount, balanceBefore, balanceAfter, nowOrder, nowOrder).run();
 
         if (!orderResult.success) {
             return jsonResponse(error(500, '创建订单失败'), 500);
@@ -197,23 +203,23 @@ export async function POST(request: Request) {
         // Insert order items
         for (const oi of orderItemsData) {
             await db.prepare(
-                `INSERT INTO order_items (order_id, product_id, product_name, product_image, normal_price, member_price, sold_price, price_type, quantity, subtotal)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal).run();
+                `INSERT INTO order_items (order_id, product_id, product_name, product_image, normal_price, member_price, sold_price, price_type, quantity, subtotal, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, nowOrder).run();
         }
 
         // Write transaction record (try with new columns, fall back to old)
         try {
             await db.prepare(
-                `INSERT INTO transactions (member_id, order_id, type, amount, balance_before, balance_after, remark)
-                 VALUES (?, ?, 'balance', ?, ?, ?, ?)`
-            ).bind(member_id, orderId, -totalAmount, balanceBefore, balanceAfter, `购买商品，订单号：${orderNo}`).run();
+                `INSERT INTO transactions (member_id, order_id, type, amount, balance_before, balance_after, remark, created_at)
+                 VALUES (?, ?, 'balance', ?, ?, ?, ?, ?)`
+            ).bind(member_id, orderId, -totalAmount, balanceBefore, balanceAfter, `购买商品，订单号：${orderNo}`, nowOrder).run();
         } catch {
             // Fallback: insert without new columns
             await db.prepare(
-                `INSERT INTO transactions (member_id, type, amount, balance_after, remark)
-                 VALUES (?, 'balance', ?, ?, ?)`
-            ).bind(member_id, -totalAmount, balanceAfter, `购买商品，订单号：${orderNo}`).run();
+                `INSERT INTO transactions (member_id, type, amount, balance_after, remark, created_at)
+                 VALUES (?, 'balance', ?, ?, ?, ?)`
+            ).bind(member_id, -totalAmount, balanceAfter, `购买商品，订单号：${orderNo}`, nowOrder).run();
         }
 
         function maskPhone(phone: string): string {
@@ -238,11 +244,13 @@ export async function POST(request: Request) {
             item_count: itemCount,
             balance_before: balanceBefore,
             balance_after: balanceAfter,
-            created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+            created_at: nowOrder,
             items: orderItemsData.map(oi => ({
                 product_id: oi.product_id,
                 product_name: oi.product_name,
                 sold_price: oi.sold_price,
+                normal_price: oi.normal_price,
+                member_price: oi.member_price,
                 quantity: oi.quantity,
                 subtotal: oi.subtotal,
             })),

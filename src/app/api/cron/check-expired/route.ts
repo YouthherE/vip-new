@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { getChinaTime } from '@/lib/utils/time';
 
 /**
  * Cron job: Check and disable expired members.
@@ -22,14 +23,15 @@ export async function GET(request: Request) {
         const db = (env as CloudflareEnv).DB;
 
         // Find all active members whose membership has expired
+        const now = getChinaTime();
         const expired = await db.prepare(`
             SELECT id, name, phone, cartype, expired_at
             FROM members
             WHERE status = 'active'
               AND expired_at IS NOT NULL
               AND expired_at != ''
-              AND datetime(expired_at) < datetime('now', 'localtime')
-        `).all<any>();
+              AND datetime(expired_at) < ?
+        `).bind(now).all<any>();
 
         const expiredMembers = expired.results;
 
@@ -44,9 +46,10 @@ export async function GET(request: Request) {
         // Batch update: disable all expired members
         const ids = expiredMembers.map((m: any) => m.id);
         const placeholders = ids.map(() => '?').join(',');
+        const updateTime = getChinaTime();
         const result = await db.prepare(
-            `UPDATE members SET status = 'disabled', updated_at = datetime('now', 'localtime') WHERE id IN (${placeholders})`
-        ).bind(...ids).run();
+            `UPDATE members SET status = 'disabled', updated_at = ? WHERE id IN (${placeholders})`
+        ).bind(updateTime, ...ids).run();
 
         if (!result.success) {
             return jsonResponse(error(500, '批量更新会员状态失败'), 500);
@@ -68,8 +71,8 @@ export async function GET(request: Request) {
 
         for (const entry of logEntries) {
             await db.prepare(
-                `INSERT INTO product_operation_logs (target_type, target_id, action, content, created_at) VALUES (?, ?, ?, ?, datetime('now', 'localtime'))`
-            ).bind(entry.target_type, entry.target_id, entry.action, entry.content).run();
+                `INSERT INTO product_operation_logs (target_type, target_id, action, content, created_at) VALUES (?, ?, ?, ?, ?)`
+            ).bind(entry.target_type, entry.target_id, entry.action, entry.content, getChinaTime()).run();
         }
 
         return jsonResponse(success({

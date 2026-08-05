@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
+import { getChinaTime } from '@/lib/utils/time';
 
 export async function POST(request: Request) {
     try {
@@ -42,9 +43,10 @@ export async function POST(request: Request) {
         }
 
         // Use batch execution for transaction-like behavior (D1 supports batch)
+        const now = getChinaTime();
         const batch = [
-            db.prepare(`UPDATE members SET ${type} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(balanceAfter, memberId),
-            db.prepare('INSERT INTO transactions (member_id, type, amount, balance_after, remark) VALUES (?, ?, ?, ?, ?)').bind(memberId, type, numAmount, balanceAfter, remark || '')
+            db.prepare(`UPDATE members SET ${type} = ?, updated_at = ? WHERE id = ?`).bind(balanceAfter, now, memberId),
+            db.prepare('INSERT INTO transactions (member_id, type, amount, balance_after, remark, created_at) VALUES (?, ?, ?, ?, ?, ?)').bind(memberId, type, numAmount, balanceAfter, remark || '', now)
         ];
 
         const results = await db.batch(batch);

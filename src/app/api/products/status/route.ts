@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
+import { getChinaTime } from '@/lib/utils/time';
 
 export async function PUT(request: Request) {
     try {
@@ -22,8 +23,8 @@ export async function PUT(request: Request) {
         const actionText = status === 'listed' ? '上架' : '下架';
 
         const result = await db.prepare(
-            `UPDATE products SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id IN (${placeholders})`
-        ).bind(status, ...ids).run();
+            `UPDATE products SET status = ?, updated_at = ? WHERE id IN (${placeholders})`
+        ).bind(status, getChinaTime(), ...ids).run();
 
         if (!result.success) {
             return jsonResponse(error(500, `批量${actionText}失败`), 500);

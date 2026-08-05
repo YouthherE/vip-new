@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { hashPassword } from '@/lib/utils/password';
+import { getChinaTime } from '@/lib/utils/time';
 
 export async function POST(request: Request) {
     try {
@@ -26,9 +27,10 @@ export async function POST(request: Request) {
         const hashedPassword = await hashPassword(password);
 
         // Insert user
+        const now = getChinaTime();
         const result = await db.prepare(
-            'INSERT INTO users (username, password_hash, created_at, updated_at) VALUES (?, ?, datetime("now"), datetime("now"))'
-        ).bind(username, hashedPassword).run();
+            'INSERT INTO users (username, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?)'
+        ).bind(username, hashedPassword, now, now).run();
 
         if (!result.success) {
              return jsonResponse(error(500, '创建用户失败'), 500);

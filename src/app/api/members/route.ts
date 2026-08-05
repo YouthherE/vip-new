@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
+import { getChinaTime } from '@/lib/utils/time';
 
 export async function GET(request: Request) {
     try {
@@ -76,8 +77,9 @@ export async function POST(request: Request) {
             return jsonResponse(error(409, '该手机号已存在'), 409);
         }
 
+        const now = getChinaTime();
         const result = await db.prepare(
-            'INSERT INTO members (name, phone, cardcode, cartype, expired_at, remark, balance, points, gender, address, channel, status) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)'
+            'INSERT INTO members (name, phone, cardcode, cartype, expired_at, remark, balance, points, gender, address, channel, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)'
         ).bind(
             name,
             phone,
@@ -88,7 +90,9 @@ export async function POST(request: Request) {
             gender || 'unknown',
             address || '',
             channel || '',
-            status || 'active'
+            status || 'active',
+            now,
+            now
         ).run();
 
         if (!result.success) {
@@ -149,7 +153,7 @@ export async function PUT(request: Request) {
 
         const result = await db.prepare(`
             UPDATE members
-            SET name = ?, phone = ?, cardcode = ?, cartype = ?, expired_at = ?, remark = ?, gender = ?, address = ?, channel = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+            SET name = ?, phone = ?, cardcode = ?, cartype = ?, expired_at = ?, remark = ?, gender = ?, address = ?, channel = ?, status = ?, updated_at = ?
             WHERE id = ?
         `).bind(
             name,
@@ -162,6 +166,7 @@ export async function PUT(request: Request) {
             address || '',
             channel || '',
             status || 'active',
+            getChinaTime(),
             id
         ).run();
 

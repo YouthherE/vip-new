@@ -64,8 +64,8 @@ export default function LoginPage() {
                     <span className="text-black font-bold text-lg">V</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold tracking-tight">VIP 管理系统</span>
-                    <span className="text-xs font-medium text-slate-400">单用户版</span>
+                    <span className="text-xl font-bold tracking-tight">会员 管理系统</span>
+                    <span className="text-xs font-medium text-slate-400">服务段 </span>
                 </div>
             </div>
 

@@ -1,5 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { getChinaTime } from '@/lib/utils/time';
 
 export async function GET(request: Request) {
     try {
@@ -10,41 +11,49 @@ export async function GET(request: Request) {
         const totalMembersResult = await db.prepare('SELECT COUNT(*) as count FROM members').first<{ count: number }>();
         const totalMembers = totalMembersResult?.count || 0;
 
-        // Today's Sales (Balance Consumption)
-        // Using date('now') which is UTC. Adjust if needed.
+        // Today's Sales (Balance Consumption) — using China time (UTC+8)
+        const todayDate = getChinaTime().substring(0, 10);
         const todaySalesResult = await db.prepare(`
-            SELECT SUM(ABS(amount)) as total 
-            FROM transactions 
-            WHERE type = 'balance' 
-            AND amount < 0 
-            AND date(created_at) = date('now')
-        `).first<{ total: number }>();
+            SELECT SUM(ABS(amount)) as total
+            FROM transactions
+            WHERE type = 'balance'
+            AND amount < 0
+            AND date(created_at) = ?
+        `).bind(todayDate).first<{ total: number }>();
         const todaySales = todaySalesResult?.total || 0;
 
         const totalPointsResult = await db.prepare('SELECT SUM(points) as total FROM members').first<{ total: number }>();
         const totalPoints = totalPointsResult?.total || 0;
 
-        // Active Members (Transactions in last 7 days)
+        // Active Members (Transactions in last 7 days) — using China time
+        const chinaNow = new Date(getChinaTime());
+        const sixDaysAgoDate = new Date(chinaNow);
+        sixDaysAgoDate.setDate(chinaNow.getDate() - 6);
+        const sixDaysAgoStr = sixDaysAgoDate.toISOString().split('T')[0];
+        const sevenDaysAgoDate2 = new Date(chinaNow);
+        sevenDaysAgoDate2.setDate(chinaNow.getDate() - 7);
+        const sevenDaysAgoStr = sevenDaysAgoDate2.toISOString().split('T')[0];
+
         const activeMembersResult = await db.prepare(`
-            SELECT COUNT(DISTINCT member_id) as count 
-            FROM transactions 
-            WHERE created_at >= date('now', '-7 days')
-        `).first<{ count: number }>();
+            SELECT COUNT(DISTINCT member_id) as count
+            FROM transactions
+            WHERE date(created_at) >= ?
+        `).bind(sevenDaysAgoStr).first<{ count: number }>();
         const activeMembersCount = activeMembersResult?.count || 0;
         const activeRate = totalMembers > 0 ? ((activeMembersCount / totalMembers) * 100).toFixed(1) : 0;
 
-        // 2. Member Growth (Last 7 Days)
+        // 2. Member Growth (Last 7 Days) — using China time
         const memberGrowthResult = await db.prepare(`
-            SELECT date(created_at) as date, COUNT(*) as count 
-            FROM members 
-            WHERE created_at >= date('now', '-6 days') 
-            GROUP BY date(created_at) 
+            SELECT date(created_at) as date, COUNT(*) as count
+            FROM members
+            WHERE date(created_at) >= ?
+            GROUP BY date(created_at)
             ORDER BY date(created_at)
-        `).all<{ date: string, count: number }>();
+        `).bind(sixDaysAgoStr).all<{ date: string, count: number }>();
 
         // Fill missing dates
         const memberGrowthData = [];
-        const today = new Date();
+        const today = chinaNow;
         for (let i = 6; i >= 0; i--) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
@@ -56,36 +65,33 @@ export async function GET(request: Request) {
             });
         }
 
-        // 3. Transaction Volume (Last 7 Days)
+        // 3. Transaction Volume (Last 7 Days) — using China time
         const transactionVolumeResult = await db.prepare(`
-            SELECT 
+            SELECT
                 date(created_at) as date,
                 SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as recharge,
                 SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as consumption
-            FROM transactions 
-            WHERE type = 'balance' 
-            AND created_at >= date('now', '-6 days')
+            FROM transactions
+            WHERE type = 'balance'
+            AND date(created_at) >= ?
             GROUP BY date(created_at)
             ORDER BY date(created_at)
-        `).all<{ date: string, recharge: number, consumption: number }>();
+        `).bind(sixDaysAgoStr).all<{ date: string, recharge: number, consumption: number }>();
 
         const transactionData = {
-            dates: [],
-            recharge: [],
-            consumption: []
+            dates: [] as string[],
+            recharge: [] as number[],
+            consumption: [] as number[]
         };
-        
+
         // Fill dates for transactions too
         for (let i = 6; i >= 0; i--) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
             const dateStr = d.toISOString().split('T')[0];
             const found = transactionVolumeResult.results.find(r => r.date === dateStr);
-            // @ts-ignore
             transactionData.dates.push(dateStr);
-            // @ts-ignore
             transactionData.recharge.push(found ? found.recharge : 0);
-            // @ts-ignore
             transactionData.consumption.push(found ? found.consumption : 0); // Consumption as positive for bar chart
         }
 

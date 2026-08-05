@@ -1,6 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
+import { getChinaTime } from '@/lib/utils/time';
 
 export async function GET(request: Request) {
     try {
@@ -82,14 +83,17 @@ export async function POST(request: Request) {
             return jsonResponse(error(400, '会员价格不能高于普通价格'), 400);
         }
 
+        const now = getChinaTime();
         const result = await db.prepare(
-            'INSERT INTO products (name, regular_price, member_price, image, status) VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO products (name, regular_price, member_price, image, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
         ).bind(
             name.trim(),
             regular_price,
             member_price,
             image || '',
-            'listed'
+            'listed',
+            now,
+            now
         ).run();
 
         if (!result.success) {
@@ -146,13 +150,14 @@ export async function PUT(request: Request) {
 
         const result = await db.prepare(`
             UPDATE products
-            SET name = ?, regular_price = ?, member_price = ?, image = ?, updated_at = CURRENT_TIMESTAMP
+            SET name = ?, regular_price = ?, member_price = ?, image = ?, updated_at = ?
             WHERE id = ?
         `).bind(
             name.trim(),
             regular_price,
             member_price,
             image || '',
+            getChinaTime(),
             id
         ).run();
 

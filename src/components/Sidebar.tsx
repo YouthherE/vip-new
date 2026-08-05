@@ -29,7 +29,7 @@ export default function Sidebar() {
     { id: 'stats-orders', label: '订单中心', icon: ShoppingBag, category: 'stats', path: '/statistics/orders' },
     { id: 'stats-transactions', label: '收支流水统计', icon: BarChart3, category: 'stats', path: '/statistics/transactions' },
     { id: 'stats-members', label: '会员增长趋势', icon: TrendingUp, category: 'stats', path: '/statistics/members' },
-    { id: 'others', label: '短信配置', icon: MoreHorizontal, category: 'more', path: '/others' },
+    { id: 'others', label: '配置', icon: MoreHorizontal, category: 'more', path: '/others' },
   ];
 
   const isActive = (path: string) => {
@@ -78,7 +78,7 @@ export default function Sidebar() {
           <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center text-white shadow-lg shadow-slate-200">
             <level.icon className="w-4 h-4" />
           </div>
-          <span className="text-base font-bold tracking-tight">VIP 管理系统</span>
+          <span className="text-base font-bold tracking-tight">会员 管理系统</span>
         </div>
       </div>
 

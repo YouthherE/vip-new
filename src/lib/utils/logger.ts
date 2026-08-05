@@ -1,4 +1,5 @@
 import { verifyJWT } from '@/lib/utils/jwt';
+import { getChinaTime } from '@/lib/utils/time';
 
 interface LogEntry {
   target_type: string;
@@ -42,13 +43,14 @@ export async function writeOperationLog(
 
     await db.prepare(
       `INSERT INTO product_operation_logs (target_type, target_id, operator_id, action, content, created_at)
-       VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))`
+       VALUES (?, ?, ?, ?, ?, ?)`
     ).bind(
       entry.target_type,
       entry.target_id || null,
       operator?.id || 0,
       entry.action,
-      content
+      content,
+      getChinaTime()
     ).run();
   } catch (e) {
     // Log silently - don't break the main operation
