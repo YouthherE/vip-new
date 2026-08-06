@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/axios';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { useToast } from '@/components/ToastProvider';
@@ -28,7 +28,7 @@ interface OperationLog {
 }
 
 interface OrderDetail {
-  order: any;
+  order: Order;
   items: OrderItem[];
   logs: OperationLog[];
 }
@@ -89,10 +89,10 @@ export default function OrdersPage() {
   const [detail, setDetail] = useState<OrderDetail | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const fetchOrders = async (page = 1) => {
+  const fetchOrders = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const params: any = { page, pageSize: pagination.pageSize };
+      const params: Record<string, string | number> = { page, pageSize: pagination.pageSize };
       if (search) params.search = search;
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
@@ -108,12 +108,12 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, filters, pagination.pageSize]);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchOrders(1), 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [fetchOrders]);
 
   const handleSearch = () => {
     fetchOrders(1);

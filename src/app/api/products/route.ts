@@ -193,7 +193,7 @@ export async function DELETE(request: Request) {
         }
 
         // Check if product exists
-        const product = await db.prepare('SELECT id FROM products WHERE id = ?').bind(id).first();
+        const product = await db.prepare('SELECT id, name FROM products WHERE id = ?').bind(id).first();
         if (!product) {
             return jsonResponse(error(404, '商品不存在'), 404);
         }

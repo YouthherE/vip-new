@@ -95,9 +95,10 @@ export default function TransactionsPage() {
         } else {
             toast.error(res.data.msg || '更新失败');
         }
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error(e);
-        toast.error(e.response?.data?.msg || '更新失败，请重试');
+        const err = e as { response?: { data?: { msg?: string } } };
+        toast.error(err.response?.data?.msg || '更新失败，请重试');
     } finally {
         setIsSubmitting(false);
     }

@@ -144,8 +144,9 @@ export default function MembersPage() {
             toast.error(res.data.message);
         }
       }
-    } catch (e: any) {
-        toast.error(e.response?.data?.message || '操作失败');
+    } catch (e: unknown) {
+        const err = e as { response?: { data?: { message?: string } } };
+        toast.error(err.response?.data?.message || '操作失败');
     }
   };
 
@@ -167,8 +168,9 @@ export default function MembersPage() {
       } else {
         toast.error(res.data.message);
       }
-    } catch (e: any) {
-        toast.error(e.response?.data?.message || '变动失败');
+    } catch (e: unknown) {
+        const err = e as { response?: { data?: { message?: string } } };
+        toast.error(err.response?.data?.message || '变动失败');
     }
   };
 
@@ -237,7 +239,7 @@ export default function MembersPage() {
   const fetchTransactions = async (memberId: number, page = 1, filters = txnFilters) => {
     setTxnLoading(true);
     try {
-      const params: any = {
+      const params: Record<string, string | number> = {
         memberId,
         page,
         pageSize: txnPagination.pageSize,
@@ -273,7 +275,7 @@ export default function MembersPage() {
   const handleExportCSV = async () => {
     if (!txnMember) return;
     try {
-      const params: any = {
+      const params: Record<string, string | number> = {
         memberId: txnMember.id,
         pageSize: 10000, // fetch all for export
       };

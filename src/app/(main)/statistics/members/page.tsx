@@ -35,9 +35,10 @@ export default function MemberStatisticsPage() {
       } else {
         notify.error(res.data.message || '获取数据失败');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch stats:', error);
-      notify.error(error.message || '获取数据失败');
+      const err = error as { message?: string };
+      notify.error(err.message || '获取数据失败');
     } finally {
       setLoading(false);
     }
@@ -79,8 +80,8 @@ export default function MemberStatisticsPage() {
   const chartOption = useMemo(() => {
     if (!data?.list) return {};
 
-    const dates = data.list.map((item: any) => item.date.slice(5)); // '2023-10-01' -> '10-01'
-    const counts = data.list.map((item: any) => item.count);
+    const dates = data.list.map((item: { date: string }) => item.date.slice(5));
+    const counts = data.list.map((item: { count: number }) => item.count);
 
     return {
       tooltip: {

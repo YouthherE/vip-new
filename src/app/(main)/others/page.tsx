@@ -204,7 +204,7 @@ export default function OthersPage() {
   const fetchStaffUsers = useCallback(async (pageNum = 1) => {
     setStaffLoading(true);
     try {
-      const params: any = { page: pageNum, pageSize: 10, sortBy: 'created_at', sortOrder: 'desc' };
+      const params: Record<string, string | number> = { page: pageNum, pageSize: 10, sortBy: 'created_at', sortOrder: 'desc' };
       if (search) params.search = search;
       if (roleFilter) params.role = roleFilter;
       if (statusFilter !== '') params.status = statusFilter;
@@ -357,8 +357,9 @@ export default function OthersPage() {
           toast.error(res.data.message || '更新失败');
         }
       }
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || '请检查并修正表单中的错误';
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      const msg = err.response?.data?.message || '请检查并修正表单中的错误';
       toast.error(msg);
     } finally {
       setFormSubmitting(false);
@@ -397,8 +398,9 @@ export default function OthersPage() {
       } else {
         toast.error(res.data.message || '删除失败');
       }
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || '删除失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || '删除失败');
     } finally {
       setDeleteSubmitting(false);
     }

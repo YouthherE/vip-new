@@ -221,8 +221,9 @@ export default function ProductsPage() {
           toast.error(res.data.message);
         }
       }
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '操作失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || '操作失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -239,8 +240,9 @@ export default function ProductsPage() {
       } else {
         toast.error(res.data.message);
       }
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || `${actionText}失败`);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || `${actionText}失败`);
     }
   };
 
@@ -256,8 +258,9 @@ export default function ProductsPage() {
       } else {
         toast.error(res.data.message);
       }
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '删除失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || '删除失败');
     }
   };
 

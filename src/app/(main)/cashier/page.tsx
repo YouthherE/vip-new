@@ -269,7 +269,7 @@ export default function CashierPage() {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (search.trim()) params.keyword = search.trim();
       const res = await api.get('/cashier/products', { params });
       if (res.data.code === 200) {
@@ -332,7 +332,7 @@ export default function CashierPage() {
 
   // For display: which total are we showing?
   const displayTotal = memberInfo?.found ? memberTotal : normalTotal;
-  const displayPriceType = memberInfo?.found ? 'member' : 'normal';
+
 
   // ──── Member Lookup ────
   const handleLookupMember = async () => {
@@ -355,8 +355,9 @@ export default function CashierPage() {
           setLookupError('未找到该会员，请重新输入');
         }
       }
-    } catch (e: any) {
-      setLookupError(e.response?.data?.message || '查询失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setLookupError(err.response?.data?.message || '查询失败');
       setMemberInfo({ found: false });
     } finally {
       setLookingUpMember(false);
@@ -373,7 +374,11 @@ export default function CashierPage() {
   const handleCheckout = async (priceType: 'normal' | 'member') => {
     setCheckingOut(true);
     try {
-      const body: any = {
+      const body: {
+        price_type: string;
+        items: { product_id: number; quantity: number }[];
+        member_id?: number;
+      } = {
         price_type: priceType,
         items: cartItems.map(c => ({
           product_id: c.product.id,
@@ -398,8 +403,9 @@ export default function CashierPage() {
       } else {
         toast.error(res.data.message);
       }
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || '购买失败');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || '购买失败');
     } finally {
       setCheckingOut(false);
     }

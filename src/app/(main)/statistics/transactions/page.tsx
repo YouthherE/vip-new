@@ -46,9 +46,10 @@ export default function TransactionStatisticsPage() {
       } else {
         notify.error(res.data.message || '获取数据失败');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch stats:', error);
-      notify.error(error.message || '获取数据失败');
+      const err = error as { message?: string };
+      notify.error(err.message || '获取数据失败');
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export default function TransactionStatisticsPage() {
     }
   };
 
-  const selectMember = (member: any) => {
+  const selectMember = (member: { id: number; name: string; phone: string }) => {
     setFilters(prev => ({ ...prev, member: member.name })); // Or member.phone, or combination
     setShowSuggestions(false);
   };
@@ -161,9 +162,9 @@ export default function TransactionStatisticsPage() {
   const chartOption = useMemo(() => {
     if (!data?.list) return {};
 
-    const dates = data.list.map((item: any) => item.date.slice(5)); // '2023-10-01' -> '10-01'
-    const rechargeData = data.list.map((item: any) => item.recharge);
-    const consumeData = data.list.map((item: any) => item.consumption); // Use positive value for display
+    const dates = data.list.map((item: { date: string }) => item.date.slice(5));
+    const rechargeData = data.list.map((item: { recharge: number }) => item.recharge);
+    const consumeData = data.list.map((item: { consumption: number }) => item.consumption);
 
     const series = [];
 

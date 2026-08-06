@@ -7,7 +7,7 @@ import { useToast } from '@/components/ToastProvider';
 
 type TabType = 'basic' | 'security' | 'logs';
 
-const TABS: { key: TabType; label: string; icon: string; IconComponent: any }[] = [
+const TABS: { key: TabType; label: string; icon: string; IconComponent: React.ComponentType<{ className?: string }> }[] = [
   { key: 'basic', label: '基本资料', icon: '📝', IconComponent: FileText },
   { key: 'security', label: '安全设置', icon: '🔒', IconComponent: Shield },
   { key: 'logs', label: '操作日志', icon: '📋', IconComponent: FileText },
@@ -160,7 +160,7 @@ export default function ProfilePage() {
 
     setLoading(true);
     try {
-      const payload: any = { username: formData.username };
+      const payload: { username: string; password?: string; phone?: string; address?: string } = { username: formData.username };
 
       if (formData.password) {
         payload.password = formData.password;
@@ -210,9 +210,10 @@ export default function ProfilePage() {
       } else {
         notify.error(response.data.message || '更新失败');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Update profile error:', error);
-      notify.error(error.response?.data?.message || '更新失败，请稍后重试');
+      const err = error as { response?: { data?: { message?: string } } };
+      notify.error(err.response?.data?.message || '更新失败，请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -233,7 +234,7 @@ export default function ProfilePage() {
     }
   };
 
-  const getStatusBadge = (status: any) => {
+  const getStatusBadge = (status: number | string) => {
     if (status === 1 || status === 'active') {
       return { label: '在线', color: 'bg-emerald-50 text-emerald-600 border-emerald-200', dot: 'bg-emerald-500' };
     }
