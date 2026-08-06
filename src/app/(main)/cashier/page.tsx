@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import api from '@/lib/axios';
 import { useToast } from '@/components/ToastProvider';
 import {
   Search, X, Loader2, ShoppingCart, ImageIcon,
   Check, Circle, User, Phone, Wallet, AlertCircle,
   Minus, Plus, Printer, Banknote, Smartphone,
-  ChevronRight
+  ChevronRight, Barcode
 } from 'lucide-react';
 import QRScanner from '@/components/QRScanner';
 
@@ -263,6 +263,13 @@ export default function CashierPage() {
   interface EntryCountItem { product_id: number; product_name: string; count: number; }
   const [entryCounts, setEntryCounts] = useState<{ date: string; list: EntryCountItem[]; total: number }>({ date: '', list: [], total: 0 });
 
+  // ──── Barcode Scanner ────
+  const [scanCode, setScanCode] = useState('');
+  const [scanStatus, setScanStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [scanFeedback, setScanFeedback] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const scanInputRef = useRef<HTMLInputElement>(null);
+
   const fetchEntryCounts = useCallback(async () => {
     try {
       const res = await api.get('/cashier/entry-counts');
@@ -491,6 +498,66 @@ export default function CashierPage() {
   // ──── Print ────
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
+  // 弹窗打开时屏蔽扫码防止误触发
+  const isModalOpen = showCheckout || showPaymentModal || showScanner || showSuccess || payingOut || showPrintPreview;
+
+  // ──── Scan Input Auto-focus ────
+  useEffect(() => {
+    if (!isModalOpen && scanInputRef.current && document.activeElement !== scanInputRef.current) {
+      const timer = setTimeout(() => scanInputRef.current?.focus(), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isModalOpen]);
+
+  // ──── Barcode Scan Handler ────
+  const handleScanProduct = async () => {
+    const code = scanCode.trim();
+    if (!code || scanning || isModalOpen) return;
+
+    setScanning(true);
+    setScanFeedback('');
+    try {
+      const res = await api.get('/cashier/products/scan', { params: { code } });
+      if (res.data.code === 200) {
+        const product: Product = res.data.data;
+        const existingInCart = cart.get(product.id);
+        setCart(prev => {
+          const next = new Map(prev);
+          if (next.has(product.id)) {
+            const item = next.get(product.id)!;
+            next.set(product.id, { ...item, quantity: Math.min(item.quantity + 1, 99) });
+          } else {
+            next.set(product.id, { product, quantity: 1 });
+          }
+          return next;
+        });
+        const newQty = existingInCart ? Math.min(existingInCart.quantity + 1, 99) : 1;
+        setScanFeedback(`${product.name} x${newQty}`);
+        setScanStatus('success');
+        scrollToProduct(product.id);
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setScanFeedback(err.response?.data?.message || '未找到该商品');
+      setScanStatus('error');
+    } finally {
+      setScanning(false);
+      setScanCode('');
+      setTimeout(() => {
+        setScanStatus('idle');
+        setScanFeedback('');
+      }, 2500);
+    }
+  };
+
+  // 扫码成功后滚动商品到可视区域
+  const scrollToProduct = (productId: number) => {
+    setTimeout(() => {
+      const el = document.getElementById(`product-card-${productId}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  };
+
   const handleContinue = () => {
     setShowSuccess(false);
     setCheckoutResult(null);
@@ -696,6 +763,41 @@ ${operatorHtml}
                 className="w-full pl-10 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
               />
             </div>
+
+            {/* ──── Barcode Scanner ──── */}
+            <div className="flex items-center gap-2">
+              <div className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all duration-300 ${
+                scanStatus === 'success' ? 'bg-emerald-50 border-emerald-300' :
+                scanStatus === 'error' ? 'bg-red-50 border-red-300' :
+                isModalOpen ? 'bg-slate-100 border-slate-200 opacity-50' :
+                'bg-slate-50 border-slate-200'
+              }`}>
+                <Barcode className={`w-4 h-4 transition-colors duration-300 ${
+                  scanStatus === 'success' ? 'text-emerald-500' :
+                  scanStatus === 'error' ? 'text-red-400' :
+                  isModalOpen ? 'text-slate-300' :
+                  scanning ? 'text-indigo-400 animate-pulse' : 'text-indigo-400 animate-pulse'
+                }`} />
+                <input
+                  ref={scanInputRef}
+                  type="text"
+                  disabled={isModalOpen}
+                  placeholder="扫码枪扫描条码..."
+                  value={scanCode}
+                  onChange={(e) => setScanCode(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleScanProduct(); }}
+                  className="w-36 bg-transparent text-sm outline-none placeholder-slate-400 disabled:cursor-not-allowed"
+                />
+                {scanning && <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />}
+              </div>
+              {scanFeedback && (
+                <span className={`text-xs font-medium whitespace-nowrap transition-all duration-300 ${
+                  scanStatus === 'success' ? 'text-emerald-600' : 'text-red-500'
+                }`}>
+                  {scanFeedback}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -750,6 +852,7 @@ ${operatorHtml}
                 return (
                   <div
                     key={product.id}
+                    id={`product-card-${product.id}`}
                     onClick={() => toggleProduct(product)}
                     className={`bg-white rounded-xl border-2 overflow-hidden transition-all cursor-pointer hover:shadow-md ${
                       selected

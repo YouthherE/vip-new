@@ -120,6 +120,11 @@ export async function executeCheckout(
   const colNames = new Set(tableInfo.map((c: any) => c.name));
   const hasPaymentCols = colNames.has('payment_method');
 
+  // ════ 检测 order_items 表是否有 entry_count 列 ════
+  const oiTableInfo = (await db.prepare("PRAGMA table_info(order_items)").all()).results as any[];
+  const oiColNames = new Set(oiTableInfo.map((c: any) => c.name));
+  const hasEntryCountCol = oiColNames.has('entry_count');
+
   // ════ 查询商品 ════
   const productIds = items.map(i => i.product_id);
   const placeholders = productIds.map(() => '?').join(',');
@@ -148,7 +153,7 @@ export async function executeCheckout(
   const orderItems: {
     product_id: number; product_name: string; product_image: string;
     normal_price: number; member_price: number; sold_price: number;
-    price_type: string; quantity: number; subtotal: number;
+    price_type: string; quantity: number; subtotal: number; entry_count: number;
   }[] = [];
 
   for (const item of items) {
@@ -166,6 +171,7 @@ export async function executeCheckout(
       price_type,
       quantity: item.quantity,
       subtotal,
+      entry_count: 0,
     });
   }
 
@@ -195,16 +201,21 @@ export async function executeCheckout(
     const orderRow = await db.prepare('SELECT id FROM orders WHERE order_no = ?').bind(orderNo).first() as any;
     const orderId = orderRow.id;
 
-    for (const oi of orderItems) {
-      await db.prepare(
-        `INSERT INTO order_items (order_id, product_id, product_name, product_image,
-          normal_price, member_price, sold_price, price_type, quantity, subtotal, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(orderId, oi.product_id, oi.product_name, oi.product_image,
-        oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, now).run();
-    }
-
     const entryCountMap = await incrementEntryCounts(db, orderItems, today);
+
+    for (const oi of orderItems) {
+      oi.entry_count = entryCountMap.get(oi.product_id) || 0;
+      const oiCols = hasEntryCountCol
+        ? 'order_id, product_id, product_name, product_image, normal_price, member_price, sold_price, price_type, quantity, subtotal, entry_count, created_at'
+        : 'order_id, product_id, product_name, product_image, normal_price, member_price, sold_price, price_type, quantity, subtotal, created_at';
+      const oiPH = hasEntryCountCol ? '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?' : '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?';
+      const oiVals = hasEntryCountCol
+        ? [orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, oi.entry_count, now]
+        : [orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, now];
+      await db.prepare(
+        `INSERT INTO order_items (${oiCols}) VALUES (${oiPH})`,
+      ).bind(...oiVals).run();
+    }
 
     const finalItems: OrderItemResult[] = orderItems.map(oi => ({
       ...oi,
@@ -271,16 +282,21 @@ export async function executeCheckout(
   const orderRow2 = await db.prepare('SELECT id FROM orders WHERE order_no = ?').bind(orderNo).first() as any;
   const orderId = orderRow2.id;
 
-  for (const oi of orderItems) {
-    await db.prepare(
-      `INSERT INTO order_items (order_id, product_id, product_name, product_image,
-        normal_price, member_price, sold_price, price_type, quantity, subtotal, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(orderId, oi.product_id, oi.product_name, oi.product_image,
-      oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, now).run();
-  }
-
   const entryCountMap = await incrementEntryCounts(db, orderItems, today);
+
+  for (const oi of orderItems) {
+    oi.entry_count = entryCountMap.get(oi.product_id) || 0;
+    const oiCols = hasEntryCountCol
+      ? 'order_id, product_id, product_name, product_image, normal_price, member_price, sold_price, price_type, quantity, subtotal, entry_count, created_at'
+      : 'order_id, product_id, product_name, product_image, normal_price, member_price, sold_price, price_type, quantity, subtotal, created_at';
+    const oiPH = hasEntryCountCol ? '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?' : '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?';
+    const oiVals = hasEntryCountCol
+      ? [orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, oi.entry_count, now]
+      : [orderId, oi.product_id, oi.product_name, oi.product_image, oi.normal_price, oi.member_price, oi.sold_price, oi.price_type, oi.quantity, oi.subtotal, now];
+    await db.prepare(
+      `INSERT INTO order_items (${oiCols}) VALUES (${oiPH})`,
+    ).bind(...oiVals).run();
+  }
 
   // 写交易流水
   try {

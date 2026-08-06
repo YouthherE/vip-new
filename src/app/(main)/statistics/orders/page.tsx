@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/axios';
+import { printTicket } from '@/lib/services/print';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { useToast } from '@/components/ToastProvider';
-import { Search, X, ChevronLeft, ChevronRight, Loader2, Calendar, Filter, RotateCcw, ShoppingBag, User, CreditCard, Clock, Package } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight, Loader2, Calendar, Filter, RotateCcw, ShoppingBag, User, CreditCard, Clock, Package, Printer } from 'lucide-react';
 
 interface OrderItem {
   id: number;
   product_name: string;
   product_image: string;
+  entry_count: number;
   normal_price: number;
   member_price: number;
   sold_price: number;
@@ -336,9 +338,43 @@ export default function OrdersPage() {
               <h3 className="font-bold text-lg text-slate-800">
                 订单详情 - {selectedOrder.order_no}
               </h3>
-              <button onClick={() => { setSelectedOrder(null); setDetail(null); }} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {detail && (
+                  <button
+                    onClick={() => {
+                      const d = detail;
+                      printTicket({
+                        order_no: d.order.order_no,
+                        price_type: d.order.price_type as 'normal' | 'member',
+                        total_amount: d.order.total_amount,
+                        item_count: d.order.item_count,
+                        created_at: d.order.created_at,
+                        items: d.items.map(item => ({
+                          product_id: item.id,
+                          product_name: item.product_name,
+                          quantity: item.quantity,
+                          normal_price: item.normal_price,
+                          member_price: item.member_price,
+                          sold_price: item.sold_price,
+                          price_type: item.price_type,
+                          subtotal: item.subtotal,
+                          entry_count: item.entry_count || 0,
+                        })),
+                        member_name: d.order.member_name || undefined,
+                        member_phone: undefined,
+                        balance_before: d.order.balance_before || undefined,
+                        balance_after: d.order.balance_after || undefined,
+                      });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                  >
+                    <Printer className="w-4 h-4" /> 补打票据
+                  </button>
+                )}
+                <button onClick={() => { setSelectedOrder(null); setDetail(null); }} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="overflow-y-auto flex-1 p-6 space-y-6">
