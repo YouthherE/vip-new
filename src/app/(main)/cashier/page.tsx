@@ -6,8 +6,10 @@ import { useToast } from '@/components/ToastProvider';
 import {
   Search, X, Loader2, ShoppingCart, ImageIcon,
   Check, Circle, User, Phone, Wallet, AlertCircle,
-  Minus, Plus, Printer
+  Minus, Plus, Printer, Banknote, Smartphone,
+  ChevronRight
 } from 'lucide-react';
+import QRScanner from '@/components/QRScanner';
 
 interface Product {
   id: number;
@@ -243,6 +245,13 @@ export default function CashierPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
 
+  // ──── Payment ────
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [pendingPriceType, setPendingPriceType] = useState<'normal' | 'member'>('normal');
+  const [payingOut, setPayingOut] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+
   // ──── Member lookup ────
   const [memberKeyword, setMemberKeyword] = useState('');
   const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
@@ -411,6 +420,66 @@ export default function CashierPage() {
     }
   };
 
+  // ──── Payment Method Handlers ────
+  const handleStartPayment = (priceType: 'normal' | 'member') => {
+    setPendingPriceType(priceType);
+    setPaymentError('');
+    setShowPaymentModal(true);
+  };
+
+  const handleCashPayment = () => {
+    setShowPaymentModal(false);
+    handleCheckout(pendingPriceType);
+  };
+
+  const handleMobilePayment = () => {
+    setShowScanner(true);
+  };
+
+  /** 扫码成功后 → 调用 micropay API */
+  const handleScanSuccess = async (authCode: string) => {
+    setShowScanner(false);
+    setShowPaymentModal(false);
+    setPayingOut(true);
+
+    try {
+      const payload: any = {
+        auth_code: authCode,
+        price_type: pendingPriceType,
+        items: cartItems.map(item => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+        })),
+      };
+      if (pendingPriceType === 'member' && memberInfo?.found) {
+        payload.member_id = memberInfo.member_id;
+      }
+
+      const res = await api.post('/payment/micropay', payload);
+
+      if (res.data?.code === 200 && res.data?.data) {
+        const { order } = res.data.data;
+        setCheckoutResult(order);
+        setShowCheckout(false);
+        setShowSuccess(true);
+        clearCart();
+        setMemberKeyword('');
+        setMemberInfo(null);
+        setLookupError('');
+        fetchEntryCounts();
+      } else {
+        setPaymentError(res.data?.message || '支付失败');
+        setShowPaymentModal(true); // 回到支付选择，可以重试
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || '支付请求异常';
+      setPaymentError(msg);
+      setShowPaymentModal(true);
+    } finally {
+      setPayingOut(false);
+    }
+  };
+
   const openCheckout = () => {
     if (cartItems.length === 0) return;
     setMemberKeyword('');
@@ -425,6 +494,7 @@ export default function CashierPage() {
   const handleContinue = () => {
     setShowSuccess(false);
     setCheckoutResult(null);
+    setPaymentError('');
   };
 
   const handleOpenPrint = () => {
@@ -935,7 +1005,7 @@ ${operatorHtml}
 
               {/* Original Price Button - always available */}
               <button
-                onClick={() => handleCheckout('normal')}
+                onClick={() => handleStartPayment('normal')}
                 disabled={checkingOut}
                 className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors text-sm disabled:opacity-50"
               >
@@ -946,7 +1016,7 @@ ${operatorHtml}
               {/* Member Price Button - only visible when member found */}
               {memberInfo?.found && (
                 <button
-                  onClick={() => handleCheckout('member')}
+                  onClick={() => handleStartPayment('member')}
                   disabled={checkingOut || memberBalanceInsufficient}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
@@ -955,6 +1025,101 @@ ${operatorHtml}
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── Payment Method Modal ──── */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-2 text-center">
+              <h3 className="text-lg font-bold text-slate-800">选择支付方式</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                {pendingPriceType === 'member' && memberInfo?.found
+                  ? `会员价合计 ${formatPrice(memberTotal)}`
+                  : `合计 ${formatPrice(normalTotal)}`}
+              </p>
+            </div>
+
+            {/* Error Banner */}
+            {paymentError && (
+              <div className="mx-6 mb-1 flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                <span>{paymentError}</span>
+              </div>
+            )}
+
+            {/* Payment Options */}
+            <div className="p-6 space-y-3">
+              {/* Cash Payment */}
+              <button
+                onClick={handleCashPayment}
+                disabled={checkingOut}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-400 transition-all duration-200 group disabled:opacity-50"
+              >
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
+                  <Banknote size={24} className="text-emerald-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-base font-bold text-slate-800">现金支付</p>
+                  <p className="text-xs text-slate-400 mt-0.5">确认金额后直接完成购买</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              </button>
+
+              {/* Mobile Payment */}
+              <button
+                onClick={handleMobilePayment}
+                disabled={checkingOut}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-400 transition-all duration-200 group disabled:opacity-50"
+              >
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center transition-transform group-hover:scale-110 duration-200">
+                  <Smartphone size={24} className="text-blue-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-base font-bold text-slate-800">手机支付</p>
+                  <p className="text-xs text-slate-400 mt-0.5">扫描顾客微信/支付宝付款码</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-blue-400 flex-shrink-0" />
+              </button>
+            </div>
+
+            {/* Cancel */}
+            <div className="px-6 pb-6">
+              <button
+                onClick={() => { setShowPaymentModal(false); setPaymentError(''); }}
+                disabled={checkingOut || payingOut}
+                className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── QR Scanner Modal ──── */}
+      {showScanner && !payingOut && (
+        <QRScanner
+          onScan={handleScanSuccess}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* ──── Paying Overlay ──── */}
+      {payingOut && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl px-10 py-8 text-center animate-in fade-in zoom-in-95 duration-200">
+            <div className="mx-auto w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+              <Loader2 size={28} className="text-blue-600 animate-spin" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 mb-1">正在支付</h3>
+            <p className="text-sm text-slate-400">
+              {pendingPriceType === 'member' ? `会员价 ${formatPrice(memberTotal)}` : `￥${formatPrice(normalTotal)}`}
+            </p>
+            <p className="text-xs text-slate-300 mt-2">请稍候，正在处理支付请求...</p>
           </div>
         </div>
       )}
