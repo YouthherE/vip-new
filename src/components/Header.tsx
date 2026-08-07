@@ -1,13 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
-import NotificationDropdown from './NotificationDropdown';
+import NotificationDropdown, { getUnreadCount } from './NotificationDropdown';
 import UserDropdown from './UserDropdown';
 
 export default function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    setHasUnread(getUnreadCount() > 0);
+  }, []);
+
+  const handleToggleNotifications = () => {
+    setShowNotifications(prev => !prev);
+  };
+
+  const handleCloseNotifications = () => {
+    setShowNotifications(false);
+    // 重新读取未读状态
+    setHasUnread(getUnreadCount() > 0);
+  };
 
   return (
     <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-border bg-surface/80 px-4 backdrop-blur-md">
@@ -21,14 +36,16 @@ export default function Header() {
       <div className="flex items-center gap-2">
         <div className="relative">
           <button
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={handleToggleNotifications}
             className={`btn btn-ghost btn-icon btn-md ${showNotifications ? 'text-ink' : ''}`}
             aria-label="通知"
           >
             <Bell className="h-4 w-4" />
-            <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border-2 border-surface bg-danger" />
+            {hasUnread && (
+              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border-2 border-surface bg-danger" />
+            )}
           </button>
-          {showNotifications && <NotificationDropdown onClose={() => setShowNotifications(false)} />}
+          {showNotifications && <NotificationDropdown onClose={handleCloseNotifications} />}
         </div>
 
         <div className="relative">
