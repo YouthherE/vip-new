@@ -44,7 +44,7 @@ export default function ProfilePage() {
         const user = JSON.parse(userStr);
         setUserData(user);
 
-        const avatar = user.avatar || `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user.username || 'Felix')}`;
+        const avatar = user.avatar || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(user.username || 'Starlight')}&backgroundColor=ffdfbf`;
         const defaults = {
           username: user.username || '',
           email: user.email || '',
@@ -105,7 +105,7 @@ export default function ProfilePage() {
         localStorage.setItem('user', JSON.stringify(fresh));
         setUserData(fresh);
         
-        const avatar = fresh.avatar || `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(fresh.username || 'Felix')}`;
+        const avatar = fresh.avatar || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(fresh.username || 'Starlight')}&backgroundColor=ffdfbf`;
         const updatedDefaults = {
           username: fresh.username || '',
           email: fresh.email || '',

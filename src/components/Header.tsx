@@ -56,7 +56,7 @@ export default function Header() {
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="User" className="h-full w-full object-cover" />
+            <img src="https://api.dicebear.com/9.x/lorelei/svg?seed=Starlight&backgroundColor=ffdfbf,ffe0bd" alt="管理员" className="h-full w-full object-cover" />
           </button>
           {showUserMenu && <UserDropdown onClose={() => setShowUserMenu(false)} />}
         </div>
