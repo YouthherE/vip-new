@@ -928,34 +928,34 @@ ${operatorHtml}
       {/* ──── Checkout Modal ──── */}
       {showCheckout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="modal-card w-full max-w-lg">
+          <div className="modal-card w-full max-w-md">
             {/* Header */}
             <div className="modal-header">
-              <h3 className="font-bold text-lg text-ink">结算</h3>
+              <h3 className="font-bold text-base text-ink">结算</h3>
               <button onClick={() => setShowCheckout(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="overflow-y-auto p-5 space-y-4">
+            <div className="overflow-y-auto p-4 space-y-3">
               {/* Order Items */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {cartItems.map(ci => {
                   const unitPrice = memberInfo?.found ? ci.product.member_price : ci.product.normal_price;
                   const subtotal = unitPrice * ci.quantity;
                   return (
-                    <div key={ci.product.id} className="flex items-center gap-3 text-sm">
+                    <div key={ci.product.id} className="flex items-center gap-2 text-sm">
                       {/* Product name */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-ink font-medium truncate">{ci.product.name}</p>
-                        <p className="text-xs text-ink-3">{formatPrice(unitPrice)} / 件</p>
+                        <p className="text-ink font-medium text-xs truncate">{ci.product.name}</p>
+                        <p className="text-[11px] text-ink-3">{formatPrice(unitPrice)} / 件</p>
                       </div>
                       {/* Quantity controls */}
                       <div className="flex items-center gap-0 flex-shrink-0">
                         <button
                           onClick={() => updateQuantity(ci.product.id, ci.quantity - 1)}
-                          className="w-7 h-7 flex items-center justify-center border border-border-strong rounded-l-md text-ink-2 hover:bg-surface-2 transition-colors"
+                          className="w-6 h-6 flex items-center justify-center border border-border-strong rounded-l text-ink-2 hover:bg-surface-2 transition-colors"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -968,35 +968,33 @@ ${operatorHtml}
                             const val = parseInt(e.target.value) || 1;
                             updateQuantity(ci.product.id, val);
                           }}
-                          className="w-12 h-7 border-y border-border-strong text-center text-xs font-medium text-ink focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-10 h-6 border-y border-border-strong text-center text-xs font-medium text-ink focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         <button
                           onClick={() => updateQuantity(ci.product.id, ci.quantity + 1)}
-                          className="w-7 h-7 flex items-center justify-center border border-border-strong rounded-r-md text-ink-2 hover:bg-surface-2 transition-colors"
+                          className="w-6 h-6 flex items-center justify-center border border-border-strong rounded-r text-ink-2 hover:bg-surface-2 transition-colors"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
                       {/* Subtotal */}
-                      <span className="font-medium text-ink w-20 text-right flex-shrink-0">{formatPrice(subtotal)}</span>
+                      <span className="font-semibold text-ink text-sm w-16 text-right flex-shrink-0">{formatPrice(subtotal)}</span>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="border-t border-border pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-ink-2">
+              <div className="border-t border-border pt-2.5 flex justify-between items-center">
+                  <span className="text-xs text-ink-2">
                     {memberInfo?.found ? '会员价合计：' : '原价合计：'}
                   </span>
-                  <span className="font-bold text-lg text-ink">
+                  <span className="font-bold text-base text-ink">
                     {formatPrice(displayTotal)}
                   </span>
                 </div>
-              </div>
 
               {/* Member Lookup */}
-              <div className="border-t border-border pt-4 space-y-3">
+              <div className="border-t border-border pt-3 space-y-2.5">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <input
@@ -1011,38 +1009,38 @@ ${operatorHtml}
                         }
                       }}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleLookupMember(); }}
-                      className="w-full px-3 py-2 pr-8 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand text-sm"
+                      className="w-full px-2.5 py-1.5 pr-7 text-xs border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     />
                     {memberKeyword && (
                       <button
                         onClick={clearMember}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink-2"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink-2"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
                   <button
                     onClick={handleLookupMember}
                     disabled={lookingUpMember || !memberKeyword.trim()}
-                    className="btn btn-ghost btn-md"
+                    className="btn btn-ghost btn-sm"
                   >
-                    {lookingUpMember ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    {lookingUpMember ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                     查询
                   </button>
                 </div>
 
                 {/* Lookup Error */}
                 {lookupError && (
-                  <div className="flex items-center gap-1.5 text-red-500 text-xs">
-                    <AlertCircle className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-1 text-red-500 text-xs">
+                    <AlertCircle className="w-3 h-3 flex-shrink-0" />
                     {lookupError}
                   </div>
                 )}
 
                 {/* Member Info Card */}
                 {memberInfo?.found && (
-                  <div className="bg-surface-2 border border-brand rounded-lg p-3 space-y-1.5">
+                  <div className="bg-surface-2 border border-brand rounded-lg p-2.5 space-y-1 text-xs">
                     <div className="flex items-center gap-2 text-sm">
                       <User className="w-4 h-4 text-brand-600" />
                       <span className="font-medium text-ink">{memberInfo.name}</span>
@@ -1077,7 +1075,7 @@ ${operatorHtml}
             <div className="modal-footer">
               <button
                 onClick={() => setShowCheckout(false)}
-                className="btn btn-secondary btn-md"
+                className="btn btn-secondary btn-sm"
               >
                 取消
               </button>
@@ -1086,9 +1084,9 @@ ${operatorHtml}
               <button
                 onClick={() => handleStartPayment('normal')}
                 disabled={checkingOut}
-                className="btn btn-secondary btn-md disabled:opacity-50"
+                className="btn btn-primary btn-sm"
               >
-                {checkingOut ? <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> : null}
+                {checkingOut && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 原价购买
               </button>
 
@@ -1097,9 +1095,9 @@ ${operatorHtml}
                 <button
                   onClick={() => handleStartPayment('member')}
                   disabled={checkingOut || memberBalanceInsufficient}
-                  className="btn btn-primary btn-md"
+                  className="btn btn-primary btn-sm"
                 >
-                  {checkingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {checkingOut && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   会员价购买
                 </button>
               )}
