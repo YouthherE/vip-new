@@ -6,8 +6,6 @@ import {
   Calendar,
   BarChart3,
   Settings,
-  FileText,
-  Lightbulb,
   Mail,
   X,
   Loader2,
@@ -41,22 +39,6 @@ const applications = [
     icon: Calendar,
     color: 'bg-orange-100 text-orange-600',
     path: '/plans'
-  },
-  {
-    id: 'inspiration',
-    title: '灵感收集',
-    description: '随时记录稍纵即逝的灵感火花',
-    icon: Lightbulb,
-    color: 'bg-yellow-100 text-yellow-600',
-    path: '/inspiration'
-  },
-  {
-    id: 'docs',
-    title: '项目文档',
-    description: '统一管理项目需求、设计和接口文档',
-    icon: FileText,
-    color: 'bg-pink-100 text-pink-600',
-    path: '/docs'
   },
   {
     id: 'reports',
