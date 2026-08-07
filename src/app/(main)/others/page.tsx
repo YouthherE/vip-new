@@ -451,7 +451,7 @@ export default function OthersPage() {
       {/* ═══════════════════════ Employee Management Modal ═══════════════════════ */}
       {showStaff && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface rounded-xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="modal-card w-full max-w-5xl h-[82vh]">
             {/* Header */}
             <div className="modal-header">
               <div className="flex items-center gap-2">
