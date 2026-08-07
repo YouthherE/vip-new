@@ -453,44 +453,28 @@ export default function OthersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-surface rounded-xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="flex justify-between items-center p-5 border-b border-border flex-shrink-0">
+            <div className="modal-header">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-surface-2 text-brand-700">
-                  <Users className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-lg text-ink">员工管理</h3>
-                <span className="text-xs text-ink-3 ml-2">
-                  ({pagination.total} 人)
-                </span>
+                <h3 className="font-bold text-base text-ink">员工管理</h3>
+                <span className="text-xs text-ink-3">共 {pagination.total} 人</span>
               </div>
-              <div className="flex items-center gap-3">
-                {canManage && (
-                  <button
-                    onClick={handleOpenAdd}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    新增员工
-                  </button>
-                )}
-                <button onClick={() => setShowStaff(false)} className="text-ink-3 hover:text-ink-2">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              <button onClick={() => setShowStaff(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Toolbar */}
-            <div className="px-5 py-3 flex flex-wrap items-center gap-3 border-b border-border flex-shrink-0">
+            {/* Toolbar — 紧凑筛选栏 */}
+            <div className="px-5 py-3 flex items-center gap-2 border-b border-border flex-shrink-0">
               {/* Search */}
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
+              <div className="relative flex-shrink-0 w-44">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
                 <input
                   type="text"
-                  placeholder="搜索账户名、手机号..."
+                  placeholder="搜索…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="w-full pl-9 pr-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand-600"
+                  className="w-full pl-8 pr-3 py-1.5 bg-surface-2 border border-border-strong rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                 />
               </div>
 
@@ -498,7 +482,7 @@ export default function OthersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="pl-2.5 pr-6 py-1.5 bg-surface-2 border border-border-strong rounded-full text-xs text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20 flex-shrink-0"
               >
                 {ROLE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -509,20 +493,28 @@ export default function OthersPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="pl-2.5 pr-6 py-1.5 bg-surface-2 border border-border-strong rounded-full text-xs text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20 flex-shrink-0"
               >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
 
-              {/* Clear Filters */}
+              {/* Clear */}
               {(search || roleFilter || statusFilter !== '') && (
                 <button
                   onClick={handleClearFilters}
-                  className="text-sm text-brand-600 hover:text-brand-700 font-medium flex-shrink-0"
+                  className="text-xs text-ink-3 hover:text-ink-2 flex-shrink-0 ml-1"
                 >
-                  清除筛选
+                  清除
+                </button>
+              )}
+
+              {/* Add Button */}
+              {canManage && (
+                <button onClick={handleOpenAdd} className="btn btn-primary btn-sm ml-auto flex-shrink-0">
+                  <Plus className="w-3.5 h-3.5" />
+                  新增
                 </button>
               )}
             </div>
