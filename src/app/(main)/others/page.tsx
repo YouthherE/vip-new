@@ -466,7 +466,7 @@ export default function OthersPage() {
             {/* Toolbar — 紧凑筛选栏 */}
             <div className="px-5 py-3 flex items-center gap-2 border-b border-border flex-shrink-0">
               {/* Search */}
-              <div className="relative flex-shrink-0 w-44">
+              <div className="relative flex-shrink-0 w-36">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
                 <input
                   type="text"
@@ -482,7 +482,7 @@ export default function OthersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="pl-2.5 pr-6 py-1.5 bg-surface-2 border border-border-strong rounded-full text-xs text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20 flex-shrink-0"
+                className="w-[4.5rem] pl-2 pr-5 py-1.5 bg-surface-2 border border-border-strong rounded-full text-xs text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20 flex-shrink-0 truncate"
               >
                 {ROLE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -493,7 +493,7 @@ export default function OthersPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-2.5 pr-6 py-1.5 bg-surface-2 border border-border-strong rounded-full text-xs text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20 flex-shrink-0"
+                className="w-[4.5rem] pl-2 pr-5 py-1.5 bg-surface-2 border border-border-strong rounded-full text-xs text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20 flex-shrink-0 truncate"
               >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
