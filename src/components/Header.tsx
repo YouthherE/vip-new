@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Bell } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 import UserDropdown from './UserDropdown';
-import ThemeToggle from './ThemeToggle';
 
 export default function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -20,8 +19,6 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-2">
-        <ThemeToggle />
-
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
