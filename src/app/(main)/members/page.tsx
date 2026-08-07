@@ -479,7 +479,7 @@ export default function MembersPage() {
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-surface rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b border-border">
+            <div className="modal-header">
               <h3 className="font-bold text-lg text-ink">{formMode === 'add' ? '新增会员' : '编辑会员'}</h3>
               <button onClick={() => setIsFormOpen(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
@@ -604,7 +604,7 @@ export default function MembersPage() {
                 </div>
                 </form>
             </div>
-            <div className="p-4 border-t border-border flex justify-end gap-3 bg-surface-2">
+            <div className="modal-footer">
                 <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors">取消</button>
                 <button type="submit" form="memberForm" className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand">
                     {formMode === 'add' ? '确认添加' : '保存修改'}
@@ -617,8 +617,8 @@ export default function MembersPage() {
       {/* Adjust Modal */}
       {isAdjustOpen && selectedMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-4 border-b border-border">
+          <div className="modal-card w-full max-w-md animate-in fade-in zoom-in duration-200">
+            <div className="modal-header">
               <h3 className="font-bold text-lg text-ink">余额/积分变动</h3>
               <button onClick={() => setIsAdjustOpen(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />

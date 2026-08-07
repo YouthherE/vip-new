@@ -854,11 +854,7 @@ ${operatorHtml}
                     key={product.id}
                     id={`product-card-${product.id}`}
                     onClick={() => toggleProduct(product)}
-                    className={`bg-surface rounded-xl border-2 overflow-hidden transition-all cursor-pointer hover:shadow-md ${
-                      selected
-                        ? 'border-brand shadow-md shadow-brand ring-1 ring-brand'
-                        : 'border-border hover:border-border-strong'
-                    }`}
+                    className={`grid-card ${selected ? 'selected' : ''}`}
                   >
                     {/* Product Image */}
                     <div className="aspect-square bg-surface-2 relative overflow-hidden flex items-center justify-center">
@@ -931,7 +927,7 @@ ${operatorHtml}
               {cartItems.length > 0 && (
                 <button
                   onClick={clearCart}
-                  className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface-2 transition-colors text-sm"
+                  className="btn btn-secondary btn-md"
                 >
                   清空选择
                 </button>
@@ -939,7 +935,7 @@ ${operatorHtml}
               <button
                 onClick={openCheckout}
                 disabled={cartItems.length === 0 || checkingOut}
-                className="px-6 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium"
+                className="btn btn-primary btn-md"
               >
                 {checkingOut && <Loader2 className="w-4 h-4 animate-spin" />}
                 去结算
@@ -952,9 +948,9 @@ ${operatorHtml}
       {/* ──── Checkout Modal ──── */}
       {showCheckout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="modal-card w-full max-w-lg">
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-border">
+            <div className="modal-header">
               <h3 className="font-bold text-lg text-ink">结算</h3>
               <button onClick={() => setShowCheckout(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
@@ -1049,7 +1045,7 @@ ${operatorHtml}
                   <button
                     onClick={handleLookupMember}
                     disabled={lookingUpMember || !memberKeyword.trim()}
-                    className="px-4 py-2 bg-surface-2 text-ink-2 rounded-lg hover:bg-surface-2 transition-colors text-sm disabled:opacity-50 flex items-center gap-1"
+                    className="btn btn-ghost btn-md"
                   >
                     {lookingUpMember ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     查询
@@ -1098,10 +1094,10 @@ ${operatorHtml}
             </div>
 
             {/* Footer Buttons */}
-            <div className="p-4 border-t border-border flex justify-end gap-3 bg-surface-2">
+            <div className="modal-footer">
               <button
                 onClick={() => setShowCheckout(false)}
-                className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors text-sm"
+                className="btn btn-secondary btn-md"
               >
                 取消
               </button>
@@ -1110,7 +1106,7 @@ ${operatorHtml}
               <button
                 onClick={() => handleStartPayment('normal')}
                 disabled={checkingOut}
-                className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors text-sm disabled:opacity-50"
+                className="btn btn-secondary btn-md disabled:opacity-50"
               >
                 {checkingOut ? <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> : null}
                 原价购买
@@ -1121,7 +1117,7 @@ ${operatorHtml}
                 <button
                   onClick={() => handleStartPayment('member')}
                   disabled={checkingOut || memberBalanceInsufficient}
-                  className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  className="btn btn-primary btn-md"
                 >
                   {checkingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   会员价购买
@@ -1135,7 +1131,7 @@ ${operatorHtml}
       {/* ──── Payment Method Modal ──── */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="modal-card w-full max-w-sm animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="px-6 pt-6 pb-2 text-center">
               <h3 className="text-lg font-bold text-ink">选择支付方式</h3>
@@ -1214,7 +1210,7 @@ ${operatorHtml}
       {/* ──── Paying Overlay ──── */}
       {payingOut && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-surface rounded-2xl shadow-2xl px-10 py-8 text-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="modal-card px-10 py-8 text-center w-full max-w-xs animate-in fade-in zoom-in-95 duration-200">
             <div className="mx-auto w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mb-4">
               <Loader2 size={28} className="text-blue-600 animate-spin" />
             </div>
@@ -1230,8 +1226,8 @@ ${operatorHtml}
       {/* ──── Print Preview Modal ──── */}
       {showPrintPreview && checkoutResult && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:hidden">
-          <div className="bg-surface rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b border-border">
+          <div className="modal-card w-full max-w-lg">
+            <div className="modal-header">
               <h3 className="font-bold text-lg text-ink">打印票据预览</h3>
               <button onClick={handleClosePrint} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
@@ -1245,16 +1241,16 @@ ${operatorHtml}
               </div>
             </div>
 
-            <div className="p-4 border-t border-border flex justify-end gap-3 bg-surface-2">
+            <div className="modal-footer">
               <button
                 onClick={handleClosePrint}
-                className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors text-sm"
+                className="btn btn-secondary btn-md"
               >
                 取消
               </button>
               <button
                 onClick={handlePrint}
-                className="px-5 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand text-sm font-medium flex items-center gap-2"
+                className="btn btn-primary btn-md"
               >
                 <Printer className="w-4 h-4" /> 确认打印
               </button>
@@ -1266,7 +1262,7 @@ ${operatorHtml}
       {/* ──── Success Modal ──── */}
       {showSuccess && checkoutResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="modal-card w-full max-w-md">
             <div className="p-6 text-center space-y-4">
               {/* Success Icon */}
               <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
@@ -1309,16 +1305,16 @@ ${operatorHtml}
               )}
             </div>
 
-            <div className="p-4 border-t border-border flex justify-center gap-3 bg-surface-2">
+            <div className="modal-footer">
               <button
                 onClick={handleOpenPrint}
-                className="px-4 py-2.5 border border-border-strong text-ink-2 rounded-lg hover:bg-surface transition-colors font-medium flex items-center gap-2"
+                className="btn btn-secondary btn-md"
               >
                 <Printer className="w-4 h-4" /> 打印票据
               </button>
               <button
                 onClick={handleContinue}
-                className="px-6 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand font-medium"
+                className="btn btn-primary btn-md"
               >
                 继续购买
               </button>

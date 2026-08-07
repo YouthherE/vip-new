@@ -923,7 +923,7 @@ export default function OthersPage() {
       {/* ═══════════════════════ Delete Confirmation Modal ═══════════════════════ */}
       {showDeleteModal && deletingUser && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="modal-card w-full max-w-md">
             <div className="p-6 text-center">
               <div className="mx-auto w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
@@ -933,7 +933,7 @@ export default function OthersPage() {
                 您确定要删除 <span className="font-semibold text-ink">{deletingUser.username}</span> 吗？此操作不可撤销。
               </p>
             </div>
-            <div className="p-4 border-t border-border flex justify-center gap-3 bg-surface-2/50">
+            <div className="modal-footer/50">
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="px-6 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"

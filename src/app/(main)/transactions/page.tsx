@@ -236,7 +236,7 @@ export default function TransactionsPage() {
       {/* Edit Remark Modal */}
       {editingTransaction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/20 backdrop-blur-sm">
-            <div className="bg-surface rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="modal-card w-full max-w-md animate-in fade-in zoom-in duration-200">
                 <div className="flex items-center justify-between p-4 border-b border-border bg-surface-2/50">
                     <h3 className="font-semibold text-ink">修改备注</h3>
                     <button 
