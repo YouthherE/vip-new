@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Bot,
   Users,
   Calendar,
   BarChart3,
@@ -28,13 +27,6 @@ import api from '@/lib/axios';
 import { useToast } from '@/components/ToastProvider';
 
 const applications = [
-  {
-    id: 'ai-assistant',
-    title: 'AI 助手',
-    description: '智能对话助手，帮您解答问题、编写代码',
-    icon: Bot,
-    color: 'bg-purple-100 text-purple-600',
-  },
   {
     id: 'employee-management',
     title: '员工管理',
@@ -144,7 +136,6 @@ export default function OthersPage() {
   const toast = useToast();
 
   // ── Modal Visibility ──
-  const [showAiChat, setShowAiChat] = useState(false);
   const [showStaff, setShowStaff] = useState(false);
 
   // ── Staff Data ──
@@ -417,14 +408,11 @@ export default function OthersPage() {
       {/* ── Application Cards Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {applications.map((app) => {
-          if (app.id === 'ai-assistant' || app.id === 'employee-management') {
+          if (app.id === 'employee-management') {
             return (
               <button
                 key={app.id}
-                onClick={() => {
-                  if (app.id === 'ai-assistant') setShowAiChat(true);
-                  else handleOpenStaff();
-                }}
+                onClick={handleOpenStaff}
                 className="group bg-surface p-6 rounded-xl border border-border-strong hover:shadow-md hover:border-brand transition-all duration-200 flex flex-col items-start text-left cursor-pointer"
               >
                 <div className={`p-3 rounded-lg mb-4 ${app.color} group-hover:scale-110 transition-transform duration-200`}>
@@ -459,31 +447,6 @@ export default function OthersPage() {
           );
         })}
       </div>
-
-      {/* ═══════════════════════ AI Chat Modal ═══════════════════════ */}
-      {showAiChat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface rounded-xl shadow-xl w-full max-w-2xl h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-purple-100 text-purple-600">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-lg text-ink">AI 助手</h3>
-              </div>
-              <button onClick={() => setShowAiChat(false)} className="text-ink-3 hover:text-ink-2">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <iframe
-              src="https://wenxin.baidu.com/?extParams=%7B%22enter_type%22%3A%22home_operate%22%7D"
-              className="flex-1 w-full border-0"
-              title="AI 助手"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            />
-          </div>
-        </div>
-      )}
 
       {/* ═══════════════════════ Employee Management Modal ═══════════════════════ */}
       {showStaff && (
