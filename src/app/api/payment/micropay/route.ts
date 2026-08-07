@@ -4,8 +4,8 @@
  * B 扫 C 被扫支付 — 商家扫描用户付款码后调用
  *
  * 流程：
- *   用户展示付款码 → 商家扫码枪扫描 (QRScanner) → 前端调用本接口
- *   → 本接口模拟调用支付平台 → 返回交易结果
+ *   用户展示付款码 → 扫码枪扫描 → 前端调用本接口
+ *   → 识别付款码渠道 → 调用对应支付平台（微信/支付宝） → 返回交易结果
  *
  * 请求体:
  *   { auth_code: string, items: {product_id, quantity}[], price_type, member_id? }
@@ -24,6 +24,8 @@ import {
   executeCheckout,
   type CheckoutResult,
 } from '@/lib/services/checkout';
+import { getPaymentProvider } from '@/lib/payments';
+import type { PayMethod } from '@/lib/payments';
 
 // ──── 付款码格式验证 ────
 
@@ -58,42 +60,6 @@ function validateAuthCode(authCode: string): { valid: boolean; reason?: string }
 function maskAuthCode(code: string): string {
   if (code.length <= 7) return '****';
   return code.substring(0, 3) + '*'.repeat(code.length - 7) + code.substring(code.length - 4);
-}
-
-/** 模拟支付平台 micro-pay 接口 */
-function simulatePaymentGateway(
-  method: string,
-  authCode: string,
-  amount: number,
-): { success: boolean; transaction_id?: string; error_code?: string; error_msg?: string } {
-  // 95% 成功率（模拟真实支付场景）
-  const roll = Math.random();
-  if (roll > 0.95) {
-    const errors = [
-      { code: 'ACQ.PAYMENT_AUTH_CODE_INVALID', msg: '付款码无效或已过期' },
-      { code: 'ACQ.BUYER_BALANCE_NOT_ENOUGH', msg: '用户余额不足' },
-      { code: 'ACQ.TRADE_HAS_CLOSE', msg: '交易已被关闭' },
-      { code: 'ACQ.SYSTEM_ERROR', msg: '支付平台系统繁忙' },
-    ];
-    const picked = errors[Math.floor(Math.random() * errors.length)];
-    return { success: false, error_code: picked.code, error_msg: picked.msg };
-  }
-
-  // 成功：生成交易流水号
-  const now = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
-  const ts = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-    String(now.getHours()).padStart(2, '0'),
-    String(now.getMinutes()).padStart(2, '0'),
-    String(now.getSeconds()).padStart(2, '0'),
-  ].join('');
-  const prefix = method === 'wechat' ? 'WX' : method === 'alipay' ? 'AL' : 'OT';
-  const rand = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-  const transactionId = `${prefix}${ts}${rand}`;
-
-  return { success: true, transaction_id: transactionId };
 }
 
 // ──── 从请求中提取操作人 ID ────
@@ -186,12 +152,19 @@ export async function POST(request: Request) {
     ).bind(paymentNo).first<any>();
     const paymentId = paymentRow!.id;
 
-    // ════ 4. 模拟调用支付平台 micro-pay ════
+    // ════ 4. 调用真实支付平台（微信/支付宝） ════
     await db.prepare(
       'UPDATE payments SET status = ?, updated_at = ? WHERE id = ?',
     ).bind('processing', getChinaTime(), paymentId).run();
 
-    const gatewayResult = simulatePaymentGateway(method, authCode, amount);
+    const provider = getPaymentProvider(method as PayMethod);
+    const gatewayResult = await provider.pay({
+      method: method as PayMethod,
+      authCode,
+      amount,
+      orderNo: paymentNo,
+      description: `星光儿童乐园-${maskedCode}`,
+    });
     const paymentStatus = gatewayResult.success ? 'success' : 'failed';
 
     await db.prepare(
@@ -199,7 +172,7 @@ export async function POST(request: Request) {
        WHERE id = ?`,
     ).bind(
       paymentStatus,
-      gatewayResult.transaction_id || null,
+      gatewayResult.transactionId || null,
       JSON.stringify(gatewayResult),
       getChinaTime(),
       paymentId,
@@ -213,15 +186,15 @@ export async function POST(request: Request) {
         action: 'micropay_failed',
         content: JSON.stringify({
           payment_no: paymentNo,
-          error_code: gatewayResult.error_code,
-          error_msg: gatewayResult.error_msg,
+          error_code: gatewayResult.errorCode,
+          error_msg: gatewayResult.errorMessage,
           method,
           amount,
         }),
       });
 
       return jsonResponse(error(402,
-        `${gatewayResult.error_msg}（${gatewayResult.error_code}）`), 402);
+        `${gatewayResult.errorMessage}（${gatewayResult.errorCode}）`), 402);
     }
 
     // ════ 6. 支付成功 → 创建订单 ════
@@ -263,7 +236,7 @@ export async function POST(request: Request) {
       action: 'micropay_success',
       content: JSON.stringify({
         payment_no: paymentNo,
-        transaction_id: gatewayResult.transaction_id,
+        transaction_id: gatewayResult.transactionId,
         method,
         amount,
         order_no: checkoutResult.data.order_no,
@@ -274,7 +247,7 @@ export async function POST(request: Request) {
     // ════ 8. 返回完整结果 ════
     return jsonResponse(success({
       payment_no: paymentNo,
-      transaction_id: gatewayResult.transaction_id,
+      transaction_id: gatewayResult.transactionId,
       method,
       auth_code_masked: maskedCode,
       amount,
