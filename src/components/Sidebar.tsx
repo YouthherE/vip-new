@@ -34,56 +34,6 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
-// ==================== 熊猫 Logo 图标 ====================
-
-function PandaIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 44 44"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      {/* 小圆耳 */}
-      <circle cx="8" cy="10" r="5" fill="#1e293b" />
-      <circle cx="36" cy="10" r="5" fill="#1e293b" />
-
-      {/* 胖脸 */}
-      <ellipse cx="22" cy="22" rx="17" ry="12.5" fill="white" stroke="#cbd5e1" strokeWidth="1.2" />
-
-      {/* 腮红 — 粉嫩圆点 */}
-      <ellipse cx="6" cy="25" rx="3.5" ry="2.2" fill="#fda4af" opacity="0.55" />
-      <ellipse cx="38" cy="25" rx="3.5" ry="2.2" fill="#fda4af" opacity="0.55" />
-
-      {/* ===== 左眼（卡通多层星眸） ===== */}
-      <ellipse cx="10.5" cy="19" rx="7.5" ry="8.5" fill="#1e293b" transform="rotate(-10 10.5 19)" />
-      <circle cx="11.5" cy="18" r="3.8" fill="white" />
-      <circle cx="11.5" cy="18" r="2.2" fill="#1e293b" />
-      <circle cx="12.8" cy="16.3" r="1.4" fill="white" />
-      <circle cx="9.8" cy="19" r="0.7" fill="white" />
-
-      {/* ===== 右眼（卡通多层星眸） ===== */}
-      <ellipse cx="33.5" cy="19" rx="7.5" ry="8.5" fill="#1e293b" transform="rotate(10 33.5 19)" />
-      <circle cx="32.5" cy="18" r="3.8" fill="white" />
-      <circle cx="32.5" cy="18" r="2.2" fill="#1e293b" />
-      <circle cx="33.8" cy="16.3" r="1.4" fill="white" />
-      <circle cx="30.8" cy="19" r="0.7" fill="white" />
-
-      {/* 小鼻头 */}
-      <ellipse cx="22" cy="26" rx="2.3" ry="1.6" fill="#1e293b" />
-
-      {/* 咧嘴笑 */}
-      <path
-        d="M15 29.5 Q22 35 29 29.5"
-        stroke="#1e293b"
-        strokeWidth="1.4"
-        fill="none"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 // ==================== 常量 ====================
 
 const menuCategories: MenuCategory[] = [
@@ -141,8 +91,13 @@ export default function Sidebar() {
       {/* ========== Logo 区域 ========== */}
       <div className="px-5 pt-6 pb-4">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:border-slate-300 transition-all duration-300 p-0.5">
-            <PandaIcon className="w-full h-full" />
+          <div className="relative w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:border-slate-300 transition-all duration-300 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/A_cute_kawaii_cartoon_anime_pa_2026-08-07T12-06-47.png"
+              alt="乐园会员"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="leading-tight">
             <p className="text-sm font-bold text-slate-800 tracking-tight">乐园会员</p>
