@@ -20,7 +20,7 @@ export default function LoginPage() {
   const [toastMsg, setToastMsg] = useState('');
   const [toastErr, setToastErr] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ptsRef = useRef<Particle[]>([]);
@@ -81,7 +81,7 @@ export default function LoginPage() {
           const d = Math.hypot(dx, dy);
           if (d < linkDist) {
             const a = (1 - d / linkDist) * 0.32;
-            ctx.strokeStyle = `rgba(56,224,214,${a})`;
+            ctx.strokeStyle = `rgba(255,107,92,${a})`;
             ctx.lineWidth = dpr * 0.6;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
@@ -144,9 +144,9 @@ export default function LoginPage() {
       <div className="fixed inset-0 z-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(48vw 48vw at 12% 18%, rgba(60,80,200,0.30), transparent 60%), ' +
-            'radial-gradient(46vw 46vw at 88% 82%, rgba(20,184,196,0.22), transparent 60%), ' +
-            'radial-gradient(40vw 40vw at 78% 12%, rgba(124,139,255,0.16), transparent 60%)',
+            'radial-gradient(48vw 48vw at 12% 18%, rgba(124,92,252,0.30), transparent 60%), ' +
+            'radial-gradient(46vw 46vw at 88% 82%, rgba(255,111,165,0.22), transparent 60%), ' +
+            'radial-gradient(40vw 40vw at 78% 12%, rgba(255,111,165,0.16), transparent 60%)',
           filter: 'blur(8px)',
         }}
       />
@@ -154,8 +154,8 @@ export default function LoginPage() {
         className="fixed inset-0 z-0 pointer-events-none opacity-40"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(125,168,255,0.05) 1px, transparent 1px), ' +
-            'linear-gradient(90deg, rgba(125,168,255,0.05) 1px, transparent 1px)',
+            'linear-gradient(rgba(255,111,165,0.05) 1px, transparent 1px), ' +
+            'linear-gradient(90deg, rgba(255,111,165,0.05) 1px, transparent 1px)',
           backgroundSize: '46px 46px',
           WebkitMaskImage: 'radial-gradient(circle at 50% 40%, #000 0%, transparent 78%)',
           maskImage: 'radial-gradient(circle at 50% 40%, #000 0%, transparent 78%)',
@@ -163,7 +163,7 @@ export default function LoginPage() {
       />
       <div className="fixed inset-x-0 h-[2px] z-[1] pointer-events-none animate-[sweep_7s_linear_infinite] opacity-60"
         style={{
-          background: 'linear-gradient(90deg, transparent, rgba(56,224,214,0.55), transparent)',
+          background: 'linear-gradient(90deg, transparent, rgba(255,107,92,0.55), transparent)',
         }}
       />
       <div className="fixed inset-0 z-[1] pointer-events-none"
@@ -176,14 +176,14 @@ export default function LoginPage() {
       <main className="relative z-[2] min-h-screen grid lg:grid-cols-[1.05fr_0.95fr] max-w-[1320px] mx-auto p-[clamp(18px,3vw,44px)]">
 
         {/* Brand panel */}
-        <section className="flex flex-col justify-between p-[clamp(28px,4vw,56px)] p-[clamp(28px,4vw,60px)] border-b lg:border-b-0 lg:border-r border-[rgba(125,168,255,0.14)]">
+        <section className="flex flex-col justify-between p-[clamp(28px,4vw,56px)] p-[clamp(28px,4vw,60px)] border-b lg:border-b-0 lg:border-r border-[rgba(255,111,165,0.14)]">
 
           <div className="flex items-center gap-3.5">
             <div
               className="w-[46px] h-[46px] rounded-[13px] grid place-items-center shrink-0"
               style={{
-                background: 'linear-gradient(140deg, #38e0d6, #7c8bff)',
-                boxShadow: '0 8px 30px rgba(56,224,214,0.28)',
+                background: 'linear-gradient(140deg, var(--brand), var(--color-pink))',
+                boxShadow: '0 8px 30px rgba(255,107,92,0.28)',
               }}
             >
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#04141a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -193,22 +193,22 @@ export default function LoginPage() {
             </div>
             <div>
               <div className="text-xl font-bold tracking-[0.14em]" style={{ fontFamily: 'var(--font-sans)' }}>
-                NOVA
+                星光儿童乐园
               </div>
               <div className="text-[10px] tracking-[0.42em] text-[#6b789c] font-medium mt-[3px]">
-                MEMBER OS
+                STARLIGHT KIDS
               </div>
             </div>
           </div>
 
           <div className="mt-auto">
-            <div className="inline-flex items-center gap-2 mb-[18px] text-[11px] tracking-[0.32em] text-[#38e0d6] uppercase"
+            <div className="inline-flex items-center gap-2 mb-[18px] text-[11px] tracking-[0.32em] text-[var(--brand)] uppercase"
               style={{ fontFamily: 'monospace' }}>
-              <span className="w-[26px] h-px bg-[#38e0d6] inline-block" />
+              <span className="w-[26px] h-px bg-[var(--brand)] inline-block" />
               SECURE ACCESS
             </div>
             <h1 className="text-[clamp(30px,3.6vw,46px)] leading-[1.1] tracking-[-0.01em] font-semibold text-[#eef3ff]">
-              连接你的<br /><span className="text-[#38e0d6]">会员增长网络</span>
+              开启您的<br /><span className="text-[var(--brand)]">会员欢乐世界</span>
             </h1>
             <p className="mt-[18px] max-w-[40ch] leading-[1.65] text-[14.5px] text-[#aab6d4]">
               统一管理会员档案、权益等级与营销触达。登录后即可进入实时运营驾驶舱。
@@ -216,7 +216,7 @@ export default function LoginPage() {
           </div>
 
           <div className="flex items-center gap-2.5 mt-10 text-xs text-[#6b789c]" style={{ fontFamily: 'monospace' }}>
-            <span className="w-[7px] h-[7px] rounded-full bg-[#38e0d6] animate-pulse" />
+            <span className="w-[7px] h-[7px] rounded-full bg-[var(--brand)] animate-pulse" />
             SYSTEM ONLINE · v3.2.1 · 端到端加密
           </div>
         </section>
@@ -225,7 +225,7 @@ export default function LoginPage() {
         <section className="grid place-items-center p-[clamp(20px,3vw,48px)]">
           <form
             onSubmit={handleLogin}
-            className="w-full max-w-[400px] rounded-[20px] border border-[rgba(125,168,255,0.32)] p-[clamp(28px,3.4vw,40px)] relative overflow-hidden"
+            className="w-full max-w-[400px] rounded-[20px] border border-[rgba(255,111,165,0.32)] p-[clamp(28px,3.4vw,40px)] relative overflow-hidden"
             noValidate
             style={{
               background: 'rgba(16,24,46,0.55)',
@@ -236,7 +236,7 @@ export default function LoginPage() {
             {/* Top accent line */}
             <div
               className="absolute top-0 left-0 right-0 h-px opacity-60"
-              style={{ background: 'linear-gradient(90deg, transparent, #38e0d6, transparent)' }}
+              style={{ background: 'linear-gradient(90deg, transparent, var(--brand), transparent)' }}
             />
 
             {/* Header */}
@@ -251,7 +251,7 @@ export default function LoginPage() {
               </div>
               <button
                 type="button"
-                className="text-[11px] text-[#aab6d4] border border-[rgba(125,168,255,0.14)] rounded-lg px-2.5 py-1.5 bg-transparent hover:border-[rgba(125,168,255,0.32)] hover:text-[#eef3ff] transition-colors"
+                className="text-[11px] text-[#aab6d4] border border-[rgba(255,111,165,0.14)] rounded-lg px-2.5 py-1.5 bg-transparent hover:border-[rgba(255,111,165,0.32)] hover:text-[#eef3ff] transition-colors"
                 style={{ fontFamily: 'monospace' }}
                 onClick={() => showToast('已切换为中文（演示）')}
               >
@@ -269,7 +269,7 @@ export default function LoginPage() {
                 账户 / 手机号
               </label>
               <div
-                className="flex items-center gap-2.5 bg-[#0f1729] border border-[rgba(125,168,255,0.14)] rounded-[14px] px-3.5 transition-all duration-300 focus-within:border-[#38e0d6] focus-within:shadow-[0_0_0_3px_rgba(56,224,214,0.13)] focus-within:bg-[#16203a]"
+                className="flex items-center gap-2.5 bg-[#0f1729] border border-[rgba(255,111,165,0.14)] rounded-[14px] px-3.5 transition-all duration-300 focus-within:border-[var(--brand)] focus-within:shadow-[0_0_0_3px_rgba(255,107,92,0.13)] focus-within:bg-[#16203a]"
               >
                 <span className="text-[#6b789c] grid place-items-center shrink-0" aria-hidden>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -299,7 +299,7 @@ export default function LoginPage() {
                 密码
               </label>
               <div
-                className="flex items-center gap-2.5 bg-[#0f1729] border border-[rgba(125,168,255,0.14)] rounded-[14px] px-3.5 transition-all duration-300 focus-within:border-[#38e0d6] focus-within:shadow-[0_0_0_3px_rgba(56,224,214,0.13)] focus-within:bg-[#16203a]"
+                className="flex items-center gap-2.5 bg-[#0f1729] border border-[rgba(255,111,165,0.14)] rounded-[14px] px-3.5 transition-all duration-300 focus-within:border-[var(--brand)] focus-within:shadow-[0_0_0_3px_rgba(255,107,92,0.13)] focus-within:bg-[#16203a]"
               >
                 <span className="text-[#6b789c] grid place-items-center shrink-0" aria-hidden>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -319,7 +319,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="bg-transparent border-none text-[#6b789c] cursor-pointer grid place-items-center p-1 rounded-md hover:text-[#38e0d6] transition-colors shrink-0"
+                  className="bg-transparent border-none text-[#6b789c] cursor-pointer grid place-items-center p-1 rounded-md hover:text-[var(--brand)] transition-colors shrink-0"
                   aria-label={showPassword ? '隐藏密码' : '显示密码'}
                 >
                   {showPassword ? (
@@ -340,14 +340,14 @@ export default function LoginPage() {
             <div className="flex justify-between items-center my-1 mb-[22px] text-[13px]">
               <label className="inline-flex items-center gap-[9px] cursor-pointer text-[#aab6d4] select-none">
                 <input type="checkbox" className="absolute opacity-0 pointer-events-none peer" />
-                <span className="w-[17px] h-[17px] rounded-[5px] border border-[rgba(125,168,255,0.32)] grid place-items-center transition-all duration-300 bg-[#0f1729] peer-checked:bg-[#38e0d6] peer-checked:border-[#38e0d6] peer-focus-visible:outline-2 peer-focus-visible:outline peer-focus-visible:outline-[#38e0d6] peer-focus-visible:outline-offset-2">
+                <span className="w-[17px] h-[17px] rounded-[5px] border border-[rgba(255,111,165,0.32)] grid place-items-center transition-all duration-300 bg-[#0f1729] peer-checked:bg-[var(--brand)] peer-checked:border-[var(--brand)] peer-focus-visible:outline-2 peer-focus-visible:outline peer-focus-visible:outline-[var(--brand)] peer-focus-visible:outline-offset-2">
                   <svg className="w-[11px] h-[11px] opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="#04141a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12l5 5 9-11" />
                   </svg>
                 </span>
                 记住我
               </label>
-              <a href="#" className="text-[#aab6d4] no-underline hover:text-[#38e0d6] transition-colors">
+              <a href="#" className="text-[#aab6d4] no-underline hover:text-[var(--brand)] transition-colors">
                 忘记密码？
               </a>
             </div>
@@ -358,8 +358,8 @@ export default function LoginPage() {
               disabled={isLoading}
               className="w-full border-none cursor-pointer rounded-[14px] py-[15px] text-[14.5px] font-semibold text-[#04141a] relative overflow-hidden transition-all duration-300 flex items-center justify-center gap-[9px] font-sans enabled:hover:-translate-y-px enabled:active:translate-y-0 disabled:opacity-70 disabled:cursor-progress"
               style={{
-                background: 'linear-gradient(100deg, #38e0d6, #14b8c4)',
-                boxShadow: '0 12px 30px -10px rgba(56,224,214,0.5)',
+                background: 'linear-gradient(100deg, var(--brand), var(--color-pink))',
+                boxShadow: '0 12px 30px -10px rgba(255,107,92,0.5)',
               }}
             >
               {/* Shimmer */}
@@ -381,7 +381,7 @@ export default function LoginPage() {
             {/* Signup link */}
             <p className="text-center mt-6 text-[13px] text-[#6b789c]">
               还没有账户？{' '}
-              <Link href="/register" className="text-[#38e0d6] no-underline font-semibold hover:underline">
+              <Link href="/register" className="text-[var(--brand)] no-underline font-semibold hover:underline">
                 申请开通席位
               </Link>
             </p>
@@ -396,12 +396,12 @@ export default function LoginPage() {
         }`}
         style={{
           background: 'rgba(20,30,56,0.7)',
-          border: `1px solid ${toastErr ? 'rgba(255,107,125,0.5)' : 'rgba(125,168,255,0.32)'}`,
+          border: `1px solid ${toastErr ? 'rgba(255,107,125,0.5)' : 'rgba(255,111,165,0.32)'}`,
           backdropFilter: 'blur(14px)',
           color: '#eef3ff',
         }}
       >
-        <span className={`w-2 h-2 rounded-full ${toastErr ? 'bg-[#ff6b7d]' : 'bg-[#38e0d6]'}`} />
+        <span className={`w-2 h-2 rounded-full ${toastErr ? 'bg-[#ff6b7d]' : 'bg-[var(--brand)]'}`} />
         {toastMsg}
       </div>
 

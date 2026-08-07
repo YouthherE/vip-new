@@ -11,7 +11,7 @@ export default function MainLayout({
     <AuthGuard>
       <div className="flex min-h-screen">
         <Sidebar />
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden h-screen bg-slate-50">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden h-screen bg-bg">
           <Header />
           <div className="flex-1 overflow-y-auto">
             {children}

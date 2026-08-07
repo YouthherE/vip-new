@@ -741,26 +741,26 @@ ${operatorHtml}
   // ──── Render ────
   return (
     <div className="h-full flex flex-col">
-      <div className="bg-white overflow-hidden flex flex-col flex-1 min-h-0">
+      <div className="bg-surface overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Header / Toolbar */}
-        <div className="p-4 border-b border-slate-100 flex-shrink-0 flex justify-between items-center gap-4 flex-wrap">
+        <div className="p-4 border-b border-border flex-shrink-0 flex justify-between items-center gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-indigo-600" />
-              <h2 className="font-bold text-lg text-slate-800">收银台</h2>
+              <ShoppingCart className="w-5 h-5 text-brand-700" />
+              <h2 className="font-bold text-lg text-ink">收银台</h2>
             </div>
             <div className="relative w-56">
               {loading && search ? (
-                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 animate-spin" />
               ) : (
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
               )}
               <input
                 type="text"
                 placeholder="搜索商品名称..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                className="w-full pl-10 pr-4 py-1.5 bg-surface-2 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-sm"
               />
             </div>
 
@@ -769,14 +769,14 @@ ${operatorHtml}
               <div className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all duration-300 ${
                 scanStatus === 'success' ? 'bg-emerald-50 border-emerald-300' :
                 scanStatus === 'error' ? 'bg-red-50 border-red-300' :
-                isModalOpen ? 'bg-slate-100 border-slate-200 opacity-50' :
-                'bg-slate-50 border-slate-200'
+                isModalOpen ? 'bg-surface-2 border-border-strong opacity-50' :
+                'bg-surface-2 border-border-strong'
               }`}>
                 <Barcode className={`w-4 h-4 transition-colors duration-300 ${
                   scanStatus === 'success' ? 'text-emerald-500' :
                   scanStatus === 'error' ? 'text-red-400' :
-                  isModalOpen ? 'text-slate-300' :
-                  scanning ? 'text-indigo-400 animate-pulse' : 'text-indigo-400 animate-pulse'
+                  isModalOpen ? 'text-ink-3' :
+                  scanning ? 'text-brand-600 animate-pulse' : 'text-brand-600 animate-pulse'
                 }`} />
                 <input
                   ref={scanInputRef}
@@ -786,9 +786,9 @@ ${operatorHtml}
                   value={scanCode}
                   onChange={(e) => setScanCode(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleScanProduct(); }}
-                  className="w-36 bg-transparent text-sm outline-none placeholder-slate-400 disabled:cursor-not-allowed"
+                  className="w-36 bg-transparent text-sm outline-none placeholder-ink-3 disabled:cursor-not-allowed"
                 />
-                {scanning && <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />}
+                {scanning && <Loader2 className="w-3.5 h-3.5 text-brand-600 animate-spin" />}
               </div>
               {scanFeedback && (
                 <span className={`text-xs font-medium whitespace-nowrap transition-all duration-300 ${
@@ -804,9 +804,9 @@ ${operatorHtml}
         {/* Today's Entry Counts */}
         <div className="px-4 pt-2 pb-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-medium text-slate-500">今日入园</span>
+            <span className="text-xs font-medium text-ink-2">今日入园</span>
             {entryCounts.list.length === 0 ? (
-              <span className="text-xs text-slate-400">暂无记录</span>
+              <span className="text-xs text-ink-3">暂无记录</span>
             ) : (
               <>
                 {entryCounts.list.map(item => (
@@ -818,8 +818,8 @@ ${operatorHtml}
               </>
             )}
             {entryCounts.total > 0 && (
-              <span className="ml-auto text-xs font-bold text-slate-600">
-                合计 <span className="text-indigo-600 text-sm">{entryCounts.total}</span> 人
+              <span className="ml-auto text-xs font-bold text-ink-2">
+                合计 <span className="text-brand-700 text-sm">{entryCounts.total}</span> 人
               </span>
             )}
           </div>
@@ -830,19 +830,19 @@ ${operatorHtml}
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
               {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden animate-pulse">
-                  <div className="aspect-square bg-slate-200" />
+                <div key={i} className="bg-surface-2 rounded-xl border border-border overflow-hidden animate-pulse">
+                  <div className="aspect-square bg-surface-2" />
                   <div className="p-3 space-y-2">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
-                    <div className="h-3 bg-slate-200 rounded w-1/2" />
-                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                    <div className="h-4 bg-surface-2 rounded w-3/4" />
+                    <div className="h-3 bg-surface-2 rounded w-1/2" />
+                    <div className="h-3 bg-surface-2 rounded w-1/2" />
                   </div>
                 </div>
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-              <ShoppingCart className="w-12 h-12 mb-3 text-slate-300" />
+            <div className="flex flex-col items-center justify-center h-64 text-ink-3">
+              <ShoppingCart className="w-12 h-12 mb-3 text-ink-3" />
               <p className="text-sm">暂无已上架的商品</p>
             </div>
           ) : (
@@ -854,14 +854,14 @@ ${operatorHtml}
                     key={product.id}
                     id={`product-card-${product.id}`}
                     onClick={() => toggleProduct(product)}
-                    className={`bg-white rounded-xl border-2 overflow-hidden transition-all cursor-pointer hover:shadow-md ${
+                    className={`bg-surface rounded-xl border-2 overflow-hidden transition-all cursor-pointer hover:shadow-md ${
                       selected
-                        ? 'border-indigo-500 shadow-md shadow-indigo-100 ring-1 ring-indigo-500'
-                        : 'border-slate-100 hover:border-slate-200'
+                        ? 'border-brand shadow-md shadow-brand ring-1 ring-brand'
+                        : 'border-border hover:border-border-strong'
                     }`}
                   >
                     {/* Product Image */}
-                    <div className="aspect-square bg-slate-50 relative overflow-hidden flex items-center justify-center">
+                    <div className="aspect-square bg-surface-2 relative overflow-hidden flex items-center justify-center">
                       {product.cover_image ? (
                         <img
                           src={product.cover_image}
@@ -869,7 +869,7 @@ ${operatorHtml}
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="flex flex-col items-center text-slate-300">
+                        <div className="flex flex-col items-center text-ink-3">
                           <ImageIcon className="w-8 h-8" />
                           <span className="text-xs mt-1">暂无图片</span>
                         </div>
@@ -877,8 +877,8 @@ ${operatorHtml}
                       {/* Selection indicator */}
                       <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                         selected
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
-                          : 'bg-white/80 border-slate-300'
+                          ? 'bg-brand border-brand-600 text-white'
+                          : 'bg-surface/80 border-border-strong'
                       }`}>
                         {selected ? (
                           <Check className="w-3.5 h-3.5" />
@@ -890,18 +890,18 @@ ${operatorHtml}
 
                     {/* Product Info */}
                     <div className="p-2.5">
-                      <h4 className="font-medium text-slate-800 text-xs truncate" title={product.name}>
+                      <h4 className="font-medium text-ink text-xs truncate" title={product.name}>
                         {product.name}
                       </h4>
                       <div className="mt-1.5 flex items-baseline gap-1.5">
-                        <span className="text-xs font-semibold text-slate-700">
+                        <span className="text-xs font-semibold text-ink">
                           {formatPrice(product.normal_price)}
                         </span>
                       </div>
                       {product.member_price < product.normal_price && (
                         <div className="flex items-baseline gap-1">
-                          <span className="text-[10px] text-slate-400">会员</span>
-                          <span className="text-xs font-semibold text-indigo-600">
+                          <span className="text-[10px] text-ink-3">会员</span>
+                          <span className="text-xs font-semibold text-brand-700">
                             {formatPrice(product.member_price)}
                           </span>
                         </div>
@@ -915,23 +915,23 @@ ${operatorHtml}
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-slate-200 p-4 bg-white flex-shrink-0 shadow-lg">
+        <div className="border-t border-border-strong p-4 bg-surface flex-shrink-0 shadow-lg">
           <div className="flex items-center justify-between max-w-4xl mx-auto">
             <div className="flex items-center gap-6 text-sm">
               <div>
-                <span className="text-slate-500">已选：</span>
-                <span className="font-bold text-slate-800">{selectedCount} 件</span>
+                <span className="text-ink-2">已选：</span>
+                <span className="font-bold text-ink">{selectedCount} 件</span>
               </div>
               <div>
-                <span className="text-slate-500">合计（原价）：</span>
-                <span className="font-bold text-lg text-slate-800">{formatPrice(normalTotal)}</span>
+                <span className="text-ink-2">合计（原价）：</span>
+                <span className="font-bold text-lg text-ink">{formatPrice(normalTotal)}</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
               {cartItems.length > 0 && (
                 <button
                   onClick={clearCart}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors text-sm"
+                  className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface-2 transition-colors text-sm"
                 >
                   清空选择
                 </button>
@@ -939,7 +939,7 @@ ${operatorHtml}
               <button
                 onClick={openCheckout}
                 disabled={cartItems.length === 0 || checkingOut}
-                className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium"
+                className="px-6 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium"
               >
                 {checkingOut && <Loader2 className="w-4 h-4 animate-spin" />}
                 去结算
@@ -952,11 +952,11 @@ ${operatorHtml}
       {/* ──── Checkout Modal ──── */}
       {showCheckout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-slate-100">
-              <h3 className="font-bold text-lg text-slate-800">结算</h3>
-              <button onClick={() => setShowCheckout(false)} className="text-slate-400 hover:text-slate-600">
+            <div className="flex justify-between items-center p-4 border-b border-border">
+              <h3 className="font-bold text-lg text-ink">结算</h3>
+              <button onClick={() => setShowCheckout(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -972,14 +972,14 @@ ${operatorHtml}
                     <div key={ci.product.id} className="flex items-center gap-3 text-sm">
                       {/* Product name */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-slate-700 font-medium truncate">{ci.product.name}</p>
-                        <p className="text-xs text-slate-400">{formatPrice(unitPrice)} / 件</p>
+                        <p className="text-ink font-medium truncate">{ci.product.name}</p>
+                        <p className="text-xs text-ink-3">{formatPrice(unitPrice)} / 件</p>
                       </div>
                       {/* Quantity controls */}
                       <div className="flex items-center gap-0 flex-shrink-0">
                         <button
                           onClick={() => updateQuantity(ci.product.id, ci.quantity - 1)}
-                          className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-l-md text-slate-500 hover:bg-slate-50 transition-colors"
+                          className="w-7 h-7 flex items-center justify-center border border-border-strong rounded-l-md text-ink-2 hover:bg-surface-2 transition-colors"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -992,35 +992,35 @@ ${operatorHtml}
                             const val = parseInt(e.target.value) || 1;
                             updateQuantity(ci.product.id, val);
                           }}
-                          className="w-12 h-7 border-y border-slate-200 text-center text-xs font-medium text-slate-700 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-12 h-7 border-y border-border-strong text-center text-xs font-medium text-ink focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                         <button
                           onClick={() => updateQuantity(ci.product.id, ci.quantity + 1)}
-                          className="w-7 h-7 flex items-center justify-center border border-slate-200 rounded-r-md text-slate-500 hover:bg-slate-50 transition-colors"
+                          className="w-7 h-7 flex items-center justify-center border border-border-strong rounded-r-md text-ink-2 hover:bg-surface-2 transition-colors"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
                       {/* Subtotal */}
-                      <span className="font-medium text-slate-700 w-20 text-right flex-shrink-0">{formatPrice(subtotal)}</span>
+                      <span className="font-medium text-ink w-20 text-right flex-shrink-0">{formatPrice(subtotal)}</span>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="border-t border-slate-100 pt-3">
+              <div className="border-t border-border pt-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-500">
+                  <span className="text-sm text-ink-2">
                     {memberInfo?.found ? '会员价合计：' : '原价合计：'}
                   </span>
-                  <span className="font-bold text-lg text-slate-800">
+                  <span className="font-bold text-lg text-ink">
                     {formatPrice(displayTotal)}
                   </span>
                 </div>
               </div>
 
               {/* Member Lookup */}
-              <div className="border-t border-slate-100 pt-4 space-y-3">
+              <div className="border-t border-border pt-4 space-y-3">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <input
@@ -1035,12 +1035,12 @@ ${operatorHtml}
                         }
                       }}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleLookupMember(); }}
-                      className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                      className="w-full px-3 py-2 pr-8 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand text-sm"
                     />
                     {memberKeyword && (
                       <button
                         onClick={clearMember}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink-2"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1049,7 +1049,7 @@ ${operatorHtml}
                   <button
                     onClick={handleLookupMember}
                     disabled={lookingUpMember || !memberKeyword.trim()}
-                    className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm disabled:opacity-50 flex items-center gap-1"
+                    className="px-4 py-2 bg-surface-2 text-ink-2 rounded-lg hover:bg-surface-2 transition-colors text-sm disabled:opacity-50 flex items-center gap-1"
                   >
                     {lookingUpMember ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     查询
@@ -1066,23 +1066,23 @@ ${operatorHtml}
 
                 {/* Member Info Card */}
                 {memberInfo?.found && (
-                  <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 space-y-1.5">
+                  <div className="bg-surface-2 border border-brand rounded-lg p-3 space-y-1.5">
                     <div className="flex items-center gap-2 text-sm">
-                      <User className="w-4 h-4 text-indigo-500" />
-                      <span className="font-medium text-slate-800">{memberInfo.name}</span>
+                      <User className="w-4 h-4 text-brand-600" />
+                      <span className="font-medium text-ink">{memberInfo.name}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <Phone className="w-4 h-4 text-indigo-500" />
-                      <span className="text-slate-600">{memberInfo.phone}</span>
+                      <Phone className="w-4 h-4 text-brand-600" />
+                      <span className="text-ink-2">{memberInfo.phone}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <Wallet className="w-4 h-4 text-indigo-500" />
-                      <span className="text-slate-600">
+                      <Wallet className="w-4 h-4 text-brand-600" />
+                      <span className="text-ink-2">
                         余额：{formatPrice(memberInfo.balance!)}
                       </span>
                     </div>
                     {!memberBalanceInsufficient && (
-                      <div className="flex items-center gap-2 text-sm text-indigo-600">
+                      <div className="flex items-center gap-2 text-sm text-brand-700">
                         <span>扣款后：{formatPrice(memberInfo.balance! - memberTotal)}</span>
                       </div>
                     )}
@@ -1098,10 +1098,10 @@ ${operatorHtml}
             </div>
 
             {/* Footer Buttons */}
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+            <div className="p-4 border-t border-border flex justify-end gap-3 bg-surface-2">
               <button
                 onClick={() => setShowCheckout(false)}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors text-sm"
+                className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors text-sm"
               >
                 取消
               </button>
@@ -1110,7 +1110,7 @@ ${operatorHtml}
               <button
                 onClick={() => handleStartPayment('normal')}
                 disabled={checkingOut}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors text-sm disabled:opacity-50"
+                className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors text-sm disabled:opacity-50"
               >
                 {checkingOut ? <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> : null}
                 原价购买
@@ -1121,7 +1121,7 @@ ${operatorHtml}
                 <button
                   onClick={() => handleStartPayment('member')}
                   disabled={checkingOut || memberBalanceInsufficient}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
                   {checkingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   会员价购买
@@ -1135,11 +1135,11 @@ ${operatorHtml}
       {/* ──── Payment Method Modal ──── */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="px-6 pt-6 pb-2 text-center">
-              <h3 className="text-lg font-bold text-slate-800">选择支付方式</h3>
-              <p className="text-sm text-slate-400 mt-1">
+              <h3 className="text-lg font-bold text-ink">选择支付方式</h3>
+              <p className="text-sm text-ink-3 mt-1">
                 {pendingPriceType === 'member' && memberInfo?.found
                   ? `会员价合计 ${formatPrice(memberTotal)}`
                   : `合计 ${formatPrice(normalTotal)}`}
@@ -1166,8 +1166,8 @@ ${operatorHtml}
                   <Banknote size={24} className="text-emerald-600" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-base font-bold text-slate-800">现金支付</p>
-                  <p className="text-xs text-slate-400 mt-0.5">确认金额后直接完成购买</p>
+                  <p className="text-base font-bold text-ink">现金支付</p>
+                  <p className="text-xs text-ink-3 mt-0.5">确认金额后直接完成购买</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-emerald-400 flex-shrink-0" />
               </button>
@@ -1182,8 +1182,8 @@ ${operatorHtml}
                   <Smartphone size={24} className="text-blue-600" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-base font-bold text-slate-800">手机支付</p>
-                  <p className="text-xs text-slate-400 mt-0.5">扫描顾客微信/支付宝付款码</p>
+                  <p className="text-base font-bold text-ink">手机支付</p>
+                  <p className="text-xs text-ink-3 mt-0.5">扫描顾客微信/支付宝付款码</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-blue-400 flex-shrink-0" />
               </button>
@@ -1194,7 +1194,7 @@ ${operatorHtml}
               <button
                 onClick={() => { setShowPaymentModal(false); setPaymentError(''); }}
                 disabled={checkingOut || payingOut}
-                className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl border border-border-strong text-ink-2 text-sm hover:bg-surface-2 transition-colors disabled:opacity-50"
               >
                 取消
               </button>
@@ -1214,15 +1214,15 @@ ${operatorHtml}
       {/* ──── Paying Overlay ──── */}
       {payingOut && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl px-10 py-8 text-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-surface rounded-2xl shadow-2xl px-10 py-8 text-center animate-in fade-in zoom-in-95 duration-200">
             <div className="mx-auto w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mb-4">
               <Loader2 size={28} className="text-blue-600 animate-spin" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 mb-1">正在支付</h3>
-            <p className="text-sm text-slate-400">
+            <h3 className="text-lg font-bold text-ink mb-1">正在支付</h3>
+            <p className="text-sm text-ink-3">
               {pendingPriceType === 'member' ? `会员价 ${formatPrice(memberTotal)}` : `￥${formatPrice(normalTotal)}`}
             </p>
-            <p className="text-xs text-slate-300 mt-2">请稍候，正在处理支付请求...</p>
+            <p className="text-xs text-ink-3 mt-2">请稍候，正在处理支付请求...</p>
           </div>
         </div>
       )}
@@ -1230,31 +1230,31 @@ ${operatorHtml}
       {/* ──── Print Preview Modal ──── */}
       {showPrintPreview && checkoutResult && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:hidden">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b border-slate-100">
-              <h3 className="font-bold text-lg text-slate-800">打印票据预览</h3>
-              <button onClick={handleClosePrint} className="text-slate-400 hover:text-slate-600">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-4 border-b border-border">
+              <h3 className="font-bold text-lg text-ink">打印票据预览</h3>
+              <button onClick={handleClosePrint} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Receipt Preview */}
-            <div className="overflow-y-auto p-6 flex justify-center bg-slate-100">
-              <div className="bg-white shadow-lg" style={{ width: '280px', minHeight: '400px', padding: '16px 14px', fontFamily: "'PingFang SC', 'Microsoft YaHei', sans-serif", fontSize: '12px' }}>
+            <div className="overflow-y-auto p-6 flex justify-center bg-surface-2">
+              <div className="bg-surface shadow-lg" style={{ width: '280px', minHeight: '400px', padding: '16px 14px', fontFamily: "'PingFang SC', 'Microsoft YaHei', sans-serif", fontSize: '12px' }}>
                 <PrintTicketContent result={checkoutResult} />
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+            <div className="p-4 border-t border-border flex justify-end gap-3 bg-surface-2">
               <button
                 onClick={handleClosePrint}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors text-sm"
+                className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors text-sm"
               >
                 取消
               </button>
               <button
                 onClick={handlePrint}
-                className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 text-sm font-medium flex items-center gap-2"
+                className="px-5 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand text-sm font-medium flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" /> 确认打印
               </button>
@@ -1266,25 +1266,25 @@ ${operatorHtml}
       {/* ──── Success Modal ──── */}
       {showSuccess && checkoutResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="p-6 text-center space-y-4">
               {/* Success Icon */}
               <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                 <Check className="w-7 h-7 text-green-600" />
               </div>
 
-              <h3 className="font-bold text-xl text-slate-800">购买成功</h3>
+              <h3 className="font-bold text-xl text-ink">购买成功</h3>
 
               {/* Member info (only for member purchase) */}
               {checkoutResult.price_type === 'member' && checkoutResult.member_name && (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-2">
                   会员：{checkoutResult.member_name}
                 </p>
               )}
 
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-ink-2">
                 消费金额：
-                <span className="font-bold text-slate-800">
+                <span className="font-bold text-ink">
                   {formatPrice(checkoutResult.total_amount)}
                 </span>
                 {checkoutResult.price_type === 'member' ? '（会员价）' : '（原价）'}
@@ -1292,33 +1292,33 @@ ${operatorHtml}
 
               {/* Balance card (only for member purchase) */}
               {checkoutResult.price_type === 'member' && checkoutResult.balance_before !== undefined && (
-                <div className="bg-slate-50 rounded-lg p-4 text-left space-y-1.5">
+                <div className="bg-surface-2 rounded-lg p-4 text-left space-y-1.5">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">扣款前余额：</span>
-                    <span className="font-medium text-slate-700">{formatPrice(checkoutResult.balance_before!)}</span>
+                    <span className="text-ink-2">扣款前余额：</span>
+                    <span className="font-medium text-ink">{formatPrice(checkoutResult.balance_before!)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">扣款金额：</span>
+                    <span className="text-ink-2">扣款金额：</span>
                     <span className="font-medium text-red-600">-{formatPrice(checkoutResult.total_amount)}</span>
                   </div>
-                  <div className="border-t border-slate-200 pt-1.5 flex justify-between text-sm">
-                    <span className="text-slate-500">当前余额：</span>
-                    <span className="font-bold text-indigo-600">{formatPrice(checkoutResult.balance_after!)}</span>
+                  <div className="border-t border-border-strong pt-1.5 flex justify-between text-sm">
+                    <span className="text-ink-2">当前余额：</span>
+                    <span className="font-bold text-brand-700">{formatPrice(checkoutResult.balance_after!)}</span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-100 flex justify-center gap-3 bg-slate-50">
+            <div className="p-4 border-t border-border flex justify-center gap-3 bg-surface-2">
               <button
                 onClick={handleOpenPrint}
-                className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-lg hover:bg-white transition-colors font-medium flex items-center gap-2"
+                className="px-4 py-2.5 border border-border-strong text-ink-2 rounded-lg hover:bg-surface transition-colors font-medium flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" /> 打印票据
               </button>
               <button
                 onClick={handleContinue}
-                className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 font-medium"
+                className="px-6 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand font-medium"
               >
                 继续购买
               </button>

@@ -153,16 +153,16 @@ export default function OrdersPage() {
     <div className="w-full h-full p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">订单中心</h2>
-          <p className="text-slate-500 text-sm mt-1">查看所有订单的基本信息、商品明细、支付信息与操作日志</p>
+          <h2 className="text-2xl font-bold text-ink">订单中心</h2>
+          <p className="text-ink-2 text-sm mt-1">查看所有订单的基本信息、商品明细、支付信息与操作日志</p>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
+      <div className="bg-surface p-4 rounded-xl border border-border-strong shadow-sm mb-6">
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <label className="text-xs font-medium text-ink-2 flex items-center gap-1">
               <Search className="w-3 h-3" /> 搜索
             </label>
             <input
@@ -170,42 +170,42 @@ export default function OrdersPage() {
               placeholder="订单号 / 客户姓名 / 手机号"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black w-[240px]"
+              className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black w-[240px]"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <label className="text-xs font-medium text-ink-2 flex items-center gap-1">
               <Calendar className="w-3 h-3" /> 开始日期
             </label>
             <input
               type="date"
               value={filters.startDate}
               onChange={e => setFilters({ ...filters, startDate: e.target.value })}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
+              className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <label className="text-xs font-medium text-ink-2 flex items-center gap-1">
               <Calendar className="w-3 h-3" /> 结束日期
             </label>
             <input
               type="date"
               value={filters.endDate}
               onChange={e => setFilters({ ...filters, endDate: e.target.value })}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
+              className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <label className="text-xs font-medium text-ink-2 flex items-center gap-1">
               <Filter className="w-3 h-3" /> 价格类型
             </label>
             <select
               value={filters.priceType}
               onChange={e => setFilters({ ...filters, priceType: e.target.value })}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
+              className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
             >
               <option value="all">全部</option>
               <option value="normal">普通价</option>
@@ -216,15 +216,15 @@ export default function OrdersPage() {
           <button
             onClick={handleSearch}
             disabled={loading}
-            className="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
+            className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
           >
-            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Search className="w-4 h-4" />}
+            {loading ? <div className="w-4 h-4 border-2 border-surface/30 border-t-white rounded-full animate-spin" /> : <Search className="w-4 h-4" />}
             查询
           </button>
 
           <button
             onClick={handleReset}
-            className="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2"
+            className="px-4 py-2 bg-surface text-ink-2 border border-border-strong rounded-lg text-sm font-medium hover:bg-surface-2 transition-colors shadow-sm flex items-center gap-2"
           >
             <RotateCcw className="w-4 h-4" /> 重置
           </button>
@@ -232,10 +232,10 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-surface rounded-xl border border-border-strong shadow-sm overflow-hidden">
         <div className="overflow-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-medium">
+            <thead className="bg-surface-2 text-ink-2 text-xs uppercase font-medium">
               <tr>
                 <th className="px-4 py-3 whitespace-nowrap">订单号</th>
                 <th className="px-4 py-3 whitespace-nowrap">客户</th>
@@ -247,43 +247,43 @@ export default function OrdersPage() {
                 <th className="px-4 py-3 whitespace-nowrap">操作人</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <TableSkeleton columns={8} rows={10} />
               ) : orders.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-400">暂无订单数据</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-ink-3">暂无订单数据</td></tr>
               ) : (
                 orders.map((order) => (
                   <tr
                     key={order.id}
                     onClick={() => openDetail(order)}
-                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="hover:bg-surface-2 transition-colors cursor-pointer"
                   >
                     <td className="px-4 py-3">
-                      <span className="font-mono text-xs text-indigo-600 font-medium">{order.order_no}</span>
+                      <span className="font-mono text-xs text-brand-700 font-medium">{order.order_no}</span>
                     </td>
                     <td className="px-4 py-3">
                       {order.member_name ? (
                         <div>
-                          <div className="font-medium text-slate-700">{order.member_name}</div>
-                          <div className="text-xs text-slate-400">{order.member_phone}</div>
+                          <div className="font-medium text-ink">{order.member_name}</div>
+                          <div className="text-xs text-ink-3">{order.member_phone}</div>
                         </div>
                       ) : (
-                        <span className="text-slate-400">散客</span>
+                        <span className="text-ink-3">散客</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-800">¥ {order.total_amount.toFixed(2)}</td>
+                    <td className="px-4 py-3 font-medium text-ink">¥ {order.total_amount.toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         order.price_type === 'member'
                           ? 'bg-purple-50 text-purple-600 border border-purple-100'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          : 'bg-surface-2 text-ink-2 border border-border-strong'
                       }`}>
                         {PRICE_TYPE_LABELS[order.price_type] || order.price_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{order.item_count}</td>
-                    <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
+                    <td className="px-4 py-3 text-ink-2">{order.item_count}</td>
+                    <td className="px-4 py-3 text-ink-2 text-xs whitespace-nowrap">
                       {new Date(order.created_at).toLocaleString('zh-CN')}
                     </td>
                     <td className="px-4 py-3">
@@ -295,7 +295,7 @@ export default function OrdersPage() {
                         {order.status === 1 ? '已完成' : '已取消'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-600 text-xs">
+                    <td className="px-4 py-3 text-ink-2 text-xs">
                       {order.operator_name || '-'}
                     </td>
                   </tr>
@@ -306,22 +306,22 @@ export default function OrdersPage() {
         </div>
 
         {/* Pagination */}
-        <div className="border-t border-slate-100 p-4 bg-slate-50 flex items-center justify-between">
-          <div className="text-sm text-slate-500">
+        <div className="border-t border-border p-4 bg-surface-2 flex items-center justify-between">
+          <div className="text-sm text-ink-2">
             共 {pagination.total} 条，页码 {pagination.page}/{pagination.totalPages || 1}
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page <= 1}
-              className="p-2 border border-slate-200 rounded-lg bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+              className="p-2 border border-border-strong rounded-lg bg-surface disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages}
-              className="p-2 border border-slate-200 rounded-lg bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+              className="p-2 border border-border-strong rounded-lg bg-surface disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -332,10 +332,10 @@ export default function OrdersPage() {
       {/* Order Detail Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col" style={{ maxWidth: '900px', maxHeight: '85vh' }}>
+          <div className="bg-surface rounded-xl shadow-xl w-full overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col" style={{ maxWidth: '900px', maxHeight: '85vh' }}>
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-slate-100 flex-shrink-0">
-              <h3 className="font-bold text-lg text-slate-800">
+            <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0">
+              <h3 className="font-bold text-lg text-ink">
                 订单详情 - {selectedOrder.order_no}
               </h3>
               <div className="flex items-center gap-2">
@@ -366,12 +366,12 @@ export default function OrdersPage() {
                         balance_after: d.order.balance_after || undefined,
                       });
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-2 text-brand-700 hover:bg-surface-2 transition-colors"
                   >
                     <Printer className="w-4 h-4" /> 补打票据
                   </button>
                 )}
-                <button onClick={() => { setSelectedOrder(null); setDetail(null); }} className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => { setSelectedOrder(null); setDetail(null); }} className="text-ink-3 hover:text-ink-2">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -380,49 +380,49 @@ export default function OrdersPage() {
             <div className="overflow-y-auto flex-1 p-6 space-y-6">
               {detailLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-ink-3 animate-spin" />
                 </div>
               ) : detail ? (
                 <>
                   {/* 订单基本信息 */}
                   <section>
-                    <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
                       <ShoppingBag className="w-4 h-4" /> 订单基本信息
                     </h4>
-                    <div className="bg-slate-50 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-surface-2 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-slate-400">订单号</span>
-                        <p className="font-mono text-slate-800 font-medium">{detail.order.order_no}</p>
+                        <span className="text-ink-3">订单号</span>
+                        <p className="font-mono text-ink font-medium">{detail.order.order_no}</p>
                       </div>
                       <div>
-                        <span className="text-slate-400">价格类型</span>
+                        <span className="text-ink-3">价格类型</span>
                         <p>{PRICE_TYPE_LABELS[detail.order.price_type] || detail.order.price_type}</p>
                       </div>
                       <div>
-                        <span className="text-slate-400">订单金额</span>
-                        <p className="font-semibold text-slate-800">¥ {detail.order.total_amount.toFixed(2)}</p>
+                        <span className="text-ink-3">订单金额</span>
+                        <p className="font-semibold text-ink">¥ {detail.order.total_amount.toFixed(2)}</p>
                       </div>
                       <div>
-                        <span className="text-slate-400">商品总数</span>
+                        <span className="text-ink-3">商品总数</span>
                         <p>{detail.order.item_count}</p>
                       </div>
                       <div>
-                        <span className="text-slate-400">状态</span>
+                        <span className="text-ink-3">状态</span>
                         <p className={detail.order.status === 1 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                           {detail.order.status === 1 ? '已完成' : '已取消'}
                         </p>
                       </div>
                       <div>
-                        <span className="text-slate-400">下单时间</span>
+                        <span className="text-ink-3">下单时间</span>
                         <p className="text-xs">{new Date(detail.order.created_at).toLocaleString('zh-CN')}</p>
                       </div>
                       <div>
-                        <span className="text-slate-400">操作人</span>
-                        <p className="font-medium text-slate-700">{detail.order.operator_name || '-'}</p>
+                        <span className="text-ink-3">操作人</span>
+                        <p className="font-medium text-ink">{detail.order.operator_name || '-'}</p>
                       </div>
                       {detail.order.remark && (
                         <div className="col-span-2">
-                          <span className="text-slate-400">备注</span>
+                          <span className="text-ink-3">备注</span>
                           <p>{detail.order.remark}</p>
                         </div>
                       )}
@@ -432,21 +432,21 @@ export default function OrdersPage() {
                   {/* 支付信息 */}
                   {detail.order.price_type === 'member' && (
                     <section>
-                      <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
                         <CreditCard className="w-4 h-4" /> 支付信息
                       </h4>
-                      <div className="bg-slate-50 rounded-lg p-4 grid grid-cols-3 gap-4 text-sm">
+                      <div className="bg-surface-2 rounded-lg p-4 grid grid-cols-3 gap-4 text-sm">
                         <div>
-                          <span className="text-slate-400">支付方式</span>
-                          <p className="font-medium text-slate-800">余额支付</p>
+                          <span className="text-ink-3">支付方式</span>
+                          <p className="font-medium text-ink">余额支付</p>
                         </div>
                         <div>
-                          <span className="text-slate-400">支付前余额</span>
-                          <p className="font-mono text-slate-700">¥ {detail.order.balance_before?.toFixed(2) || '-'}</p>
+                          <span className="text-ink-3">支付前余额</span>
+                          <p className="font-mono text-ink">¥ {detail.order.balance_before?.toFixed(2) || '-'}</p>
                         </div>
                         <div>
-                          <span className="text-slate-400">支付后余额</span>
-                          <p className="font-mono text-slate-700">¥ {detail.order.balance_after?.toFixed(2) || '-'}</p>
+                          <span className="text-ink-3">支付后余额</span>
+                          <p className="font-mono text-ink">¥ {detail.order.balance_after?.toFixed(2) || '-'}</p>
                         </div>
                       </div>
                     </section>
@@ -454,29 +454,29 @@ export default function OrdersPage() {
 
                   {/* 客户信息 */}
                   <section>
-                    <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
                       <User className="w-4 h-4" /> 客户信息
                     </h4>
-                    <div className="bg-slate-50 rounded-lg p-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    <div className="bg-surface-2 rounded-lg p-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                       {detail.order.member_name ? (
                         <>
                           <div>
-                            <span className="text-slate-400">客户姓名</span>
-                            <p className="font-medium text-slate-800">{detail.order.member_name}</p>
+                            <span className="text-ink-3">客户姓名</span>
+                            <p className="font-medium text-ink">{detail.order.member_name}</p>
                           </div>
                           <div>
-                            <span className="text-slate-400">手机号</span>
-                            <p className="font-mono text-slate-700">{detail.order.member_phone}</p>
+                            <span className="text-ink-3">手机号</span>
+                            <p className="font-mono text-ink">{detail.order.member_phone}</p>
                           </div>
                           <div>
-                            <span className="text-slate-400">会员ID</span>
+                            <span className="text-ink-3">会员ID</span>
                             <p>{detail.order.member_id}</p>
                           </div>
                         </>
                       ) : (
                         <div>
-                          <span className="text-slate-400">类型</span>
-                          <p className="text-slate-500">散客（非会员）</p>
+                          <span className="text-ink-3">类型</span>
+                          <p className="text-ink-2">散客（非会员）</p>
                         </div>
                       )}
                     </div>
@@ -484,12 +484,12 @@ export default function OrdersPage() {
 
                   {/* 商品明细 */}
                   <section>
-                    <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
                       <Package className="w-4 h-4" /> 商品明细
                     </h4>
-                    <div className="overflow-hidden border border-slate-200 rounded-lg">
+                    <div className="overflow-hidden border border-border-strong rounded-lg">
                       <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-100 text-slate-500 text-xs uppercase">
+                        <thead className="bg-surface-2 text-ink-2 text-xs uppercase">
                           <tr>
                             <th className="px-4 py-2">商品名称</th>
                             <th className="px-4 py-2">单价</th>
@@ -497,7 +497,7 @@ export default function OrdersPage() {
                             <th className="px-4 py-2 text-right">小计</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-border">
                           {detail.items.map((item) => (
                             <tr key={item.id}>
                               <td className="px-4 py-2.5">
@@ -505,17 +505,17 @@ export default function OrdersPage() {
                                   {item.product_image && (
                                     <img src={item.product_image} alt={item.product_name} className="w-8 h-8 rounded object-cover" />
                                   )}
-                                  <span className="font-medium text-slate-700">{item.product_name}</span>
+                                  <span className="font-medium text-ink">{item.product_name}</span>
                                 </div>
                               </td>
                               <td className="px-4 py-2.5">
-                                <span className="font-mono text-slate-700">¥ {item.sold_price.toFixed(2)}</span>
+                                <span className="font-mono text-ink">¥ {item.sold_price.toFixed(2)}</span>
                                 {item.price_type === 'member' && item.member_price !== item.normal_price && (
-                                  <span className="text-xs text-slate-400 line-through ml-1">¥ {item.normal_price.toFixed(2)}</span>
+                                  <span className="text-xs text-ink-3 line-through ml-1">¥ {item.normal_price.toFixed(2)}</span>
                                 )}
                               </td>
-                              <td className="px-4 py-2.5 text-slate-600">× {item.quantity}</td>
-                              <td className="px-4 py-2.5 text-right font-mono font-medium text-slate-800">¥ {item.subtotal.toFixed(2)}</td>
+                              <td className="px-4 py-2.5 text-ink-2">× {item.quantity}</td>
+                              <td className="px-4 py-2.5 text-right font-mono font-medium text-ink">¥ {item.subtotal.toFixed(2)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -525,26 +525,26 @@ export default function OrdersPage() {
 
                   {/* 操作日志 */}
                   <section>
-                    <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
                       <Clock className="w-4 h-4" /> 操作日志
                     </h4>
                     {detail.logs.length === 0 ? (
-                      <p className="text-sm text-slate-400 bg-slate-50 rounded-lg p-4">暂无操作日志</p>
+                      <p className="text-sm text-ink-3 bg-surface-2 rounded-lg p-4">暂无操作日志</p>
                     ) : (
-                      <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
+                      <div className="border border-border-strong rounded-lg divide-y divide-border">
                         {detail.logs.map((log) => (
-                          <div key={log.id} className="px-4 py-3 flex items-start gap-4 text-sm hover:bg-slate-50">
-                            <span className="text-xs text-slate-400 whitespace-nowrap pt-0.5 min-w-[140px]">
+                          <div key={log.id} className="px-4 py-3 flex items-start gap-4 text-sm hover:bg-surface-2">
+                            <span className="text-xs text-ink-3 whitespace-nowrap pt-0.5 min-w-[140px]">
                               {new Date(log.created_at).toLocaleString('zh-CN')}
                             </span>
                             <span className={`px-1.5 py-0.5 rounded text-xs font-medium min-w-[60px] text-center ${
                               log.action === 'checkout_member' ? 'bg-purple-50 text-purple-600' :
                               log.action === 'checkout_normal' ? 'bg-blue-50 text-blue-600' :
-                              'bg-slate-100 text-slate-600'
+                              'bg-surface-2 text-ink-2'
                             }`}>
                               {ACTION_LABELS[log.action] || log.action}
                             </span>
-                            <span className="text-slate-600 flex-1">{log.content}</span>
+                            <span className="text-ink-2 flex-1">{log.content}</span>
                           </div>
                         ))}
                       </div>
@@ -552,7 +552,7 @@ export default function OrdersPage() {
                   </section>
                 </>
               ) : (
-                <div className="text-center py-12 text-slate-400">加载失败，请重试</div>
+                <div className="text-center py-12 text-ink-3">加载失败，请重试</div>
               )}
             </div>
           </div>

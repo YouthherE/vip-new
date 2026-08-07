@@ -15,10 +15,8 @@ import {
   Sparkles,
   PieChart,
   Settings,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
-
-// ==================== 类型定义 ====================
 
 interface MenuItem {
   id: string;
@@ -34,16 +32,12 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
-// ==================== 常量 ====================
-
 const menuCategories: MenuCategory[] = [
   {
     id: 'main',
     label: '主菜单',
     icon: Home,
-    items: [
-      { id: 'dashboard', label: '首页', icon: LayoutDashboard, path: '/' },
-    ],
+    items: [{ id: 'dashboard', label: '首页', icon: LayoutDashboard, path: '/' }],
   },
   {
     id: 'business',
@@ -69,56 +63,51 @@ const menuCategories: MenuCategory[] = [
     id: 'settings',
     label: '系统设置',
     icon: Settings,
-    items: [
-      { id: 'others', label: '系统配置', icon: MoreHorizontal, path: '/others' },
-    ],
+    items: [{ id: 'others', label: '系统配置', icon: MoreHorizontal, path: '/others' }],
   },
 ];
-
-// ==================== 组件 ====================
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   const isActive = (path: string) => {
-    if (path === '/' && pathname !== '/') return false;
-    return pathname === path;
+    if (path === '/') return pathname === '/';
+    return pathname === path || pathname.startsWith(path + '/');
   };
 
   return (
-    <aside className="w-56 flex-shrink-0 border-r border-slate-200/80 flex flex-col h-screen sticky top-0 z-20 bg-gradient-to-b from-white via-white to-slate-50/50">
-      
-      {/* ========== Logo 区域 ========== */}
-      <div className="px-5 pt-6 pb-4">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:border-slate-300 transition-all duration-300 overflow-hidden">
+    <aside className="flex w-60 flex-shrink-0 flex-col border-r border-border bg-surface sticky top-0 z-20 h-screen">
+      {/* Logo */}
+      <div className="px-5 pb-4 pt-6">
+        <Link href="/" className="group flex items-center gap-3">
+          <div
+            className="relative h-10 w-10 overflow-hidden rounded-xl shadow-sm transition-all duration-300 group-hover:shadow-md"
+            style={{ background: 'linear-gradient(135deg, var(--brand) 0%, var(--color-pink) 100%)' }}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/A_cute_kawaii_cartoon_anime_pa_2026-08-07T12-06-47.png"
               alt="乐园会员"
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
             />
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-bold text-slate-800 tracking-tight">乐园会员</p>
-            <p className="text-[11px] font-medium text-slate-400 tracking-wide">管理系统</p>
+            <p className="text-sm font-bold tracking-tight text-ink">乐园会员</p>
+            <p className="text-[11px] font-medium tracking-wide text-ink-3">管理系统</p>
           </div>
         </Link>
       </div>
 
-      {/* ========== 导航菜单 ========== */}
-      <nav className="flex-1 px-3 space-y-5 overflow-y-auto">
+      {/* 导航 */}
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3">
         {menuCategories.map((category) => (
           <div key={category.id}>
-            {/* 分类标题 */}
-            <div className="flex items-center gap-2 px-2 mb-1.5">
-              <category.icon className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="mb-1.5 flex items-center gap-2 px-2">
+              <category.icon className="h-3.5 w-3.5 text-ink-3" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
                 {category.label}
               </span>
             </div>
-
-            {/* 菜单项列表 */}
             <div className="space-y-0.5">
               {category.items.map((item) => {
                 const active = isActive(item.path);
@@ -126,35 +115,39 @@ export default function Sidebar() {
                   <Link
                     key={item.id}
                     href={item.path}
-                    className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                       active
-                        ? 'bg-indigo-50/80 text-indigo-700'
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/80'
+                        ? 'text-brand-700'
+                        : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
                     }`}
+                    style={
+                      active
+                        ? { background: 'color-mix(in srgb, var(--brand) 12%, transparent)' }
+                        : undefined
+                    }
                   >
-                    {/* 激活状态左侧指示条 */}
                     {active && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-500 rounded-r-full" />
+                      <span
+                        className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full"
+                        style={{ background: 'var(--brand)' }}
+                      />
                     )}
-
-                    {/* 图标 */}
                     <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
                         active
-                          ? 'bg-indigo-100 text-indigo-600'
-                          : 'bg-transparent text-slate-400 group-hover:text-slate-600 group-hover:bg-slate-200/60'
+                          ? 'text-brand-700'
+                          : 'bg-transparent text-ink-3 group-hover:bg-surface-2 group-hover:text-ink-2'
                       }`}
+                      style={
+                        active
+                          ? { background: 'color-mix(in srgb, var(--brand) 18%, transparent)' }
+                          : undefined
+                      }
                     >
-                      <item.icon className="w-4 h-4" />
+                      <item.icon className="h-4 w-4" />
                     </div>
-
-                    {/* 文字 */}
                     <span className="truncate">{item.label}</span>
-
-                    {/* 激活时右侧小箭头 */}
-                    {active && (
-                      <ChevronRight className="w-3.5 h-3.5 text-indigo-400 ml-auto flex-shrink-0" />
-                    )}
+                    {active && <ChevronRight className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-brand-600" />}
                   </Link>
                 );
               })}
@@ -162,7 +155,6 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
-
     </aside>
   );
 }

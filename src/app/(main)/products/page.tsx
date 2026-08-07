@@ -310,28 +310,28 @@ export default function ProductsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="bg-white overflow-hidden flex flex-col flex-1 min-h-0">
+      <div className="bg-surface overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-100 flex-shrink-0 flex justify-between items-center gap-4 flex-wrap">
+        <div className="p-4 border-b border-border flex-shrink-0 flex justify-between items-center gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="relative w-56">
               {loading && search ? (
-                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 animate-spin" />
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 animate-spin" />
               ) : (
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
               )}
               <input
                 type="text"
                 placeholder="搜索商品名称..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                className="w-full pl-10 pr-4 py-1.5 bg-surface-2 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-sm"
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm text-slate-600"
+              className="px-3 py-1.5 bg-surface-2 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand text-sm text-ink-2"
             >
               <option value="all">全部状态</option>
               <option value="listed">已上架</option>
@@ -340,7 +340,7 @@ export default function ProductsPage() {
           </div>
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors text-sm font-medium"
           >
             <Plus className="w-4 h-4" />
             新增商品
@@ -352,23 +352,23 @@ export default function ProductsPage() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden animate-pulse">
-                  <div className="aspect-square bg-slate-200" />
+                <div key={i} className="bg-surface-2 rounded-xl border border-border overflow-hidden animate-pulse">
+                  <div className="aspect-square bg-surface-2" />
                   <div className="p-4 space-y-2">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
-                    <div className="h-3 bg-slate-200 rounded w-1/2" />
-                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                    <div className="h-4 bg-surface-2 rounded w-3/4" />
+                    <div className="h-3 bg-surface-2 rounded w-1/2" />
+                    <div className="h-3 bg-surface-2 rounded w-1/2" />
                   </div>
                 </div>
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-              <Package className="w-12 h-12 mb-3 text-slate-300" />
+            <div className="flex flex-col items-center justify-center h-64 text-ink-3">
+              <Package className="w-12 h-12 mb-3 text-ink-3" />
               <p className="text-sm">暂无商品数据</p>
               <button
                 onClick={openAdd}
-                className="mt-3 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                className="mt-3 text-sm text-brand-700 hover:text-brand-700 font-medium"
               >
                 立即添加第一个商品
               </button>
@@ -378,12 +378,12 @@ export default function ProductsPage() {
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className={`bg-white rounded-xl border overflow-hidden transition-all hover:shadow-md group ${
-                    product.status === 'unlisted' ? 'opacity-70 border-slate-200' : 'border-slate-100'
+                  className={`bg-surface rounded-xl border overflow-hidden transition-all hover:shadow-md group ${
+                    product.status === 'unlisted' ? 'opacity-70 border-border-strong' : 'border-border'
                   }`}
                 >
                   {/* Product Image */}
-                  <div className="aspect-square bg-slate-50 relative overflow-hidden flex items-center justify-center">
+                  <div className="aspect-square bg-surface-2 relative overflow-hidden flex items-center justify-center">
                     {product.image ? (
                       <img
                         src={product.image}
@@ -391,7 +391,7 @@ export default function ProductsPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="flex flex-col items-center text-slate-300">
+                      <div className="flex flex-col items-center text-ink-3">
                         <ImageIcon className="w-10 h-10" />
                         <span className="text-xs mt-1">暂无图片</span>
                       </div>
@@ -401,7 +401,7 @@ export default function ProductsPage() {
                       className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${
                         product.status === 'listed'
                           ? 'bg-green-500 text-white'
-                          : 'bg-slate-500 text-white'
+                          : 'bg-ink-3 text-white'
                       }`}
                     >
                       {product.status === 'listed' ? '已上架' : '已下架'}
@@ -410,21 +410,21 @@ export default function ProductsPage() {
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                       <button
                         onClick={(e) => { e.stopPropagation(); openEdit(product); }}
-                        className="p-2 bg-white rounded-lg shadow-lg text-slate-600 hover:text-indigo-600 transition-colors"
+                        className="p-2 bg-surface rounded-lg shadow-lg text-ink-2 hover:text-brand-700 transition-colors"
                         title="编辑"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleToggleStatus(product); }}
-                        className="p-2 bg-white rounded-lg shadow-lg text-slate-600 hover:text-amber-600 transition-colors"
+                        className="p-2 bg-surface rounded-lg shadow-lg text-ink-2 hover:text-amber-600 transition-colors"
                         title={product.status === 'listed' ? '下架' : '上架'}
                       >
                         {product.status === 'listed' ? <ArrowDown className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); openDelete(product); }}
-                        className="p-2 bg-white rounded-lg shadow-lg text-slate-600 hover:text-red-600 transition-colors"
+                        className="p-2 bg-surface rounded-lg shadow-lg text-ink-2 hover:text-red-600 transition-colors"
                         title="删除"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -434,18 +434,18 @@ export default function ProductsPage() {
 
                   {/* Card body */}
                   <div className="p-3">
-                    <h4 className="font-medium text-slate-800 text-sm truncate" title={product.name}>
+                    <h4 className="font-medium text-ink text-sm truncate" title={product.name}>
                       {product.name}
                     </h4>
                     <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-xs text-slate-400">普通</span>
-                      <span className="text-sm font-semibold text-slate-700">{formatPrice(product.regular_price)}</span>
+                      <span className="text-xs text-ink-3">普通</span>
+                      <span className="text-sm font-semibold text-ink">{formatPrice(product.regular_price)}</span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xs text-slate-400">会员</span>
-                      <span className="text-sm font-semibold text-indigo-600">{formatPrice(product.member_price)}</span>
+                      <span className="text-xs text-ink-3">会员</span>
+                      <span className="text-sm font-semibold text-brand-700">{formatPrice(product.member_price)}</span>
                     </div>
-                    <div className="mt-2 text-xs text-slate-400">
+                    <div className="mt-2 text-xs text-ink-3">
                       {new Date(product.created_at).toLocaleDateString()}
                     </div>
                   </div>
@@ -456,22 +456,22 @@ export default function ProductsPage() {
         </div>
 
         {/* Pagination */}
-        <div className="border-t border-slate-100 p-4 bg-slate-50 flex items-center justify-between flex-shrink-0">
-          <div className="text-sm text-slate-500">
+        <div className="border-t border-border p-4 bg-surface-2 flex items-center justify-between flex-shrink-0">
+          <div className="text-sm text-ink-2">
             共 {pagination.total} 条，页码 {pagination.page}/{pagination.totalPages || 1}
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page <= 1}
-              className="p-2 border border-slate-200 rounded-lg bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+              className="p-2 border border-border-strong rounded-lg bg-surface disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages}
-              className="p-2 border border-slate-200 rounded-lg bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+              className="p-2 border border-border-strong rounded-lg bg-surface disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-2"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -482,12 +482,12 @@ export default function ProductsPage() {
       {/* ──── Add / Edit Modal ──── */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b border-slate-100">
-              <h3 className="font-bold text-lg text-slate-800">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-4 border-b border-border">
+              <h3 className="font-bold text-lg text-ink">
                 {formMode === 'add' ? '新增商品' : '编辑商品'}
               </h3>
-              <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setIsFormOpen(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -495,7 +495,7 @@ export default function ProductsPage() {
               <form id="productForm" onSubmit={handleFormSubmit} className="space-y-5">
                 {/* Product Name */}
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">
+                  <label className="text-sm font-medium text-ink">
                     商品名称 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -503,38 +503,38 @@ export default function ProductsPage() {
                     maxLength={50}
                     value={productForm.name}
                     onChange={e => setProductForm({ ...productForm, name: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 ${
-                      formErrors.name ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand ${
+                      formErrors.name ? 'border-red-300 bg-red-50' : 'border-border-strong'
                     }`}
                     placeholder="请输入商品名称（最多50字）"
                   />
                   {formErrors.name && (
                     <p className="text-xs text-red-500">{formErrors.name}</p>
                   )}
-                  <p className="text-xs text-slate-400">{productForm.name.length}/50</p>
+                  <p className="text-xs text-ink-3">{productForm.name.length}/50</p>
                 </div>
                 {/* Product Code */}
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">
-                    物品编码 <span className="text-xs text-slate-400 font-normal">（选填）</span>
+                  <label className="text-sm font-medium text-ink">
+                    物品编码 <span className="text-xs text-ink-3 font-normal">（选填）</span>
                   </label>
                   <input
                       maxLength={50}
                       value={productForm.code}
                       onChange={e => setProductForm({ ...productForm, code: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                       placeholder="请输入物品编码"
                   />
-                  <p className="text-xs text-slate-400">{productForm.code.length}/50</p>
+                  <p className="text-xs text-ink-3">{productForm.code.length}/50</p>
                 </div>
                 {/* Prices */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700">
+                    <label className="text-sm font-medium text-ink">
                       普通价格 <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">¥</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 text-sm">¥</span>
                       <input
                         required
                         type="number"
@@ -542,8 +542,8 @@ export default function ProductsPage() {
                         min="0"
                         value={productForm.regular_price}
                         onChange={e => setProductForm({ ...productForm, regular_price: e.target.value })}
-                        className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 ${
-                          formErrors.regular_price ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                        className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand ${
+                          formErrors.regular_price ? 'border-red-300 bg-red-50' : 'border-border-strong'
                         }`}
                         placeholder="0.00"
                       />
@@ -553,11 +553,11 @@ export default function ProductsPage() {
                     )}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700">
+                    <label className="text-sm font-medium text-ink">
                       会员价格 <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 text-sm">¥</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-600 text-sm">¥</span>
                       <input
                         required
                         type="number"
@@ -565,8 +565,8 @@ export default function ProductsPage() {
                         min="0"
                         value={productForm.member_price}
                         onChange={e => setProductForm({ ...productForm, member_price: e.target.value })}
-                        className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 ${
-                          formErrors.member_price ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                        className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand ${
+                          formErrors.member_price ? 'border-red-300 bg-red-50' : 'border-border-strong'
                         }`}
                         placeholder="0.00"
                       />
@@ -574,20 +574,20 @@ export default function ProductsPage() {
                     {formErrors.member_price && (
                       <p className="text-xs text-red-500">{formErrors.member_price}</p>
                     )}
-                    <p className="text-xs text-slate-400">会员价格不应高于普通价格</p>
+                    <p className="text-xs text-ink-3">会员价格不应高于普通价格</p>
                   </div>
                 </div>
 
                 {/* Image Upload */}
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">商品图片</label>
+                  <label className="text-sm font-medium text-ink">商品图片</label>
 
                   {imagePreview ? (
                     <div className="relative inline-block">
                       <img
                         src={imagePreview}
                         alt="预览"
-                        className="w-40 h-40 object-cover rounded-lg border border-slate-200"
+                        className="w-40 h-40 object-cover rounded-lg border border-border-strong"
                       />
                       <button
                         type="button"
@@ -605,15 +605,15 @@ export default function ProductsPage() {
                       onClick={() => fileInputRef.current?.click()}
                       className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                         isDragOver
-                          ? 'border-indigo-400 bg-indigo-50'
-                          : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
+                          ? 'border-brand-600 bg-surface-2'
+                          : 'border-border-strong hover:border-border-strong hover:bg-surface-2'
                       }`}
                     >
-                      <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                      <p className="text-sm text-slate-500">
-                        拖拽图片到此处，或<span className="text-indigo-600">点击上传</span>
+                      <Upload className="w-8 h-8 mx-auto text-ink-3 mb-2" />
+                      <p className="text-sm text-ink-2">
+                        拖拽图片到此处，或<span className="text-brand-700">点击上传</span>
                       </p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-ink-3 mt-1">
                         支持 JPG、PNG、GIF、WebP 格式，大小不超过 2MB
                       </p>
                     </div>
@@ -628,11 +628,11 @@ export default function ProductsPage() {
                 </div>
               </form>
             </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+            <div className="p-4 border-t border-border flex justify-end gap-3 bg-surface-2">
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors"
+                className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors"
               >
                 取消
               </button>
@@ -640,7 +640,7 @@ export default function ProductsPage() {
                 type="submit"
                 form="productForm"
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 {formMode === 'add' ? '确认上架' : '保存修改'}
@@ -653,12 +653,12 @@ export default function ProductsPage() {
       {/* ──── Delete Confirmation Modal ──── */}
       {isDeleteOpen && deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-4 border-b border-slate-100">
-              <h3 className="font-bold text-lg text-slate-800">确认删除</h3>
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-4 border-b border-border">
+              <h3 className="font-bold text-lg text-ink">确认删除</h3>
               <button
                 onClick={() => { setIsDeleteOpen(false); setDeleteTarget(null); }}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-3 hover:text-ink-2"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -669,17 +669,17 @@ export default function ProductsPage() {
                   <Trash2 className="w-5 h-5 text-red-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-700">
-                    确定要删除商品 <span className="font-semibold text-slate-900">「{deleteTarget.name}」</span> 吗？
+                  <p className="text-sm text-ink">
+                    确定要删除商品 <span className="font-semibold text-ink">「{deleteTarget.name}」</span> 吗？
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">此操作不可撤销，商品的所有数据将被永久删除。</p>
+                  <p className="text-xs text-ink-3 mt-1">此操作不可撤销，商品的所有数据将被永久删除。</p>
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+            <div className="p-4 border-t border-border flex justify-end gap-3 bg-surface-2">
               <button
                 onClick={() => { setIsDeleteOpen(false); setDeleteTarget(null); }}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-white transition-colors"
+                className="px-4 py-2 border border-border-strong rounded-lg text-ink-2 hover:bg-surface transition-colors"
               >
                 取消
               </button>

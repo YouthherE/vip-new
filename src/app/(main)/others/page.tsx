@@ -40,7 +40,7 @@ const applications = [
     title: '员工管理',
     description: '查看系统注册的所有员工账户信息',
     icon: Users,
-    color: 'bg-indigo-100 text-indigo-600',
+    color: 'bg-surface-2 text-brand-700',
   },
   {
     id: 'plans',
@@ -87,7 +87,7 @@ const applications = [
     title: '系统设置',
     description: '个性化配置您的工作台',
     icon: Settings,
-    color: 'bg-slate-100 text-slate-600',
+    color: 'bg-surface-2 text-ink-2',
     path: '/settings'
   }
 ];
@@ -410,8 +410,8 @@ export default function OthersPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">其它应用</h1>
-        <p className="text-slate-500 mt-2">探索更多实用工具，提升工作效率</p>
+        <h1 className="text-2xl font-bold text-ink">其它应用</h1>
+        <p className="text-ink-2 mt-2">探索更多实用工具，提升工作效率</p>
       </div>
 
       {/* ── Application Cards Grid ── */}
@@ -425,15 +425,15 @@ export default function OthersPage() {
                   if (app.id === 'ai-assistant') setShowAiChat(true);
                   else handleOpenStaff();
                 }}
-                className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md hover:border-indigo-200 transition-all duration-200 flex flex-col items-start text-left cursor-pointer"
+                className="group bg-surface p-6 rounded-xl border border-border-strong hover:shadow-md hover:border-brand transition-all duration-200 flex flex-col items-start text-left cursor-pointer"
               >
                 <div className={`p-3 rounded-lg mb-4 ${app.color} group-hover:scale-110 transition-transform duration-200`}>
                   <app.icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">
+                <h3 className="text-lg font-semibold text-ink mb-2 group-hover:text-brand-700 transition-colors">
                   {app.title}
                 </h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
+                <p className="text-sm text-ink-2 leading-relaxed">
                   {app.description}
                 </p>
               </button>
@@ -444,15 +444,15 @@ export default function OthersPage() {
             <Link
               href={(app as any).path || '/'}
               key={app.id}
-              className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md hover:border-indigo-200 transition-all duration-200 flex flex-col items-start"
+              className="group bg-surface p-6 rounded-xl border border-border-strong hover:shadow-md hover:border-brand transition-all duration-200 flex flex-col items-start"
             >
               <div className={`p-3 rounded-lg mb-4 ${app.color} group-hover:scale-110 transition-transform duration-200`}>
                 <app.icon className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">
+              <h3 className="text-lg font-semibold text-ink mb-2 group-hover:text-brand-700 transition-colors">
                 {app.title}
               </h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
+              <p className="text-sm text-ink-2 leading-relaxed">
                 {app.description}
               </p>
             </Link>
@@ -463,15 +463,15 @@ export default function OthersPage() {
       {/* ═══════════════════════ AI Chat Modal ═══════════════════════ */}
       {showAiChat && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-slate-100 flex-shrink-0">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-2xl h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-purple-100 text-purple-600">
                   <Bot className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-lg text-slate-800">AI 助手</h3>
+                <h3 className="font-bold text-lg text-ink">AI 助手</h3>
               </div>
-              <button onClick={() => setShowAiChat(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setShowAiChat(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -488,15 +488,15 @@ export default function OthersPage() {
       {/* ═══════════════════════ Employee Management Modal ═══════════════════════ */}
       {showStaff && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="flex justify-between items-center p-5 border-b border-slate-100 flex-shrink-0">
+            <div className="flex justify-between items-center p-5 border-b border-border flex-shrink-0">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-600">
+                <div className="p-1.5 rounded-lg bg-surface-2 text-brand-700">
                   <Users className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-lg text-slate-800">员工管理</h3>
-                <span className="text-xs text-slate-400 ml-2">
+                <h3 className="font-bold text-lg text-ink">员工管理</h3>
+                <span className="text-xs text-ink-3 ml-2">
                   ({pagination.total} 人)
                 </span>
               </div>
@@ -504,30 +504,30 @@ export default function OthersPage() {
                 {canManage && (
                   <button
                     onClick={handleOpenAdd}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                     新增员工
                   </button>
                 )}
-                <button onClick={() => setShowStaff(false)} className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => setShowStaff(false)} className="text-ink-3 hover:text-ink-2">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             {/* Toolbar */}
-            <div className="px-5 py-3 flex flex-wrap items-center gap-3 border-b border-slate-50 flex-shrink-0">
+            <div className="px-5 py-3 flex flex-wrap items-center gap-3 border-b border-border flex-shrink-0">
               {/* Search */}
               <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
                 <input
                   type="text"
                   placeholder="搜索账户名、手机号..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+                  className="w-full pl-9 pr-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand-600"
                 />
               </div>
 
@@ -535,7 +535,7 @@ export default function OthersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20"
               >
                 {ROLE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -546,7 +546,7 @@ export default function OthersPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm text-ink-2 focus:outline-none focus:ring-2 focus:ring-brand/20"
               >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -557,7 +557,7 @@ export default function OthersPage() {
               {(search || roleFilter || statusFilter !== '') && (
                 <button
                   onClick={handleClearFilters}
-                  className="text-sm text-indigo-500 hover:text-indigo-600 font-medium flex-shrink-0"
+                  className="text-sm text-brand-600 hover:text-brand-700 font-medium flex-shrink-0"
                 >
                   清除筛选
                 </button>
@@ -568,16 +568,16 @@ export default function OthersPage() {
             <div className="overflow-y-auto flex-1">
               {staffLoading ? (
                 <div className="flex items-center justify-center py-20">
-                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
                 </div>
               ) : staffUsers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                  <Users className="w-12 h-12 mb-3 text-slate-200" />
+                <div className="flex flex-col items-center justify-center py-20 text-ink-3">
+                  <Users className="w-12 h-12 mb-3 text-ink-3" />
                   <p className="text-sm mb-2">暂无员工数据</p>
                   {(search || roleFilter || statusFilter !== '') && (
                     <button
                       onClick={handleClearFilters}
-                      className="text-sm text-indigo-500 hover:text-indigo-600 font-medium"
+                      className="text-sm text-brand-600 hover:text-brand-700 font-medium"
                     >
                       清除筛选条件
                     </button>
@@ -585,8 +585,8 @@ export default function OthersPage() {
                 </div>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 sticky top-0 z-10">
-                    <tr className="text-left text-slate-500 text-xs uppercase">
+                  <thead className="bg-surface-2 sticky top-0 z-10">
+                    <tr className="text-left text-ink-2 text-xs uppercase">
                       <th className="px-5 py-3 font-medium whitespace-nowrap">账户名</th>
                       <th className="px-5 py-3 font-medium whitespace-nowrap">角色</th>
                       <th className="px-5 py-3 font-medium whitespace-nowrap">手机号</th>
@@ -595,15 +595,15 @@ export default function OthersPage() {
                       <th className="px-5 py-3 font-medium whitespace-nowrap">操作</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-border">
                     {staffUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={user.id} className="hover:bg-surface-2/50 transition-colors">
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-bold flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-brand-700 text-xs font-bold flex-shrink-0">
                               {getNameInitial(user.username)}
                             </div>
-                            <span className="font-medium text-slate-800 whitespace-nowrap font-mono text-xs">
+                            <span className="font-medium text-ink whitespace-nowrap font-mono text-xs">
                               {user.username}
                             </span>
                           </div>
@@ -614,22 +614,22 @@ export default function OthersPage() {
                               ? 'bg-purple-50 text-purple-600'
                               : user.role === 'operator'
                               ? 'bg-blue-50 text-blue-600'
-                              : 'bg-slate-100 text-slate-600'
+                              : 'bg-surface-2 text-ink-2'
                           }`}>
                             {user.roleLabel}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-slate-500 whitespace-nowrap">
+                        <td className="px-5 py-3 text-ink-2 whitespace-nowrap">
                           {user.phone || '-'}
                         </td>
-                        <td className="px-5 py-3 text-slate-500 whitespace-nowrap text-xs">
+                        <td className="px-5 py-3 text-ink-2 whitespace-nowrap text-xs">
                           {formatDate(user.created_at)}
                         </td>
                         <td className="px-5 py-3 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             user.status === 1
                               ? 'bg-green-50 text-green-600'
-                              : 'bg-slate-100 text-slate-500'
+                              : 'bg-surface-2 text-ink-2'
                           }`}>
                             {user.status === 1 ? '启用' : '禁用'}
                           </span>
@@ -639,21 +639,21 @@ export default function OthersPage() {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => handleOpenEdit(user)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                className="p-1.5 rounded-lg text-ink-3 hover:text-brand-700 hover:bg-surface-2 transition-colors"
                                 title="编辑"
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleOpenDelete(user)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                className="p-1.5 rounded-lg text-ink-3 hover:text-red-600 hover:bg-red-50 transition-colors"
                                 title="删除"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           ) : (
-                            <span className="text-xs text-slate-400">-</span>
+                            <span className="text-xs text-ink-3">-</span>
                           )}
                         </td>
                       </tr>
@@ -665,15 +665,15 @@ export default function OthersPage() {
 
             {/* Pagination */}
             {pagination.total > 0 && (
-              <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 flex-shrink-0">
-                <span className="text-xs text-slate-500">
+              <div className="px-5 py-3 border-t border-border flex items-center justify-between bg-surface-2/50 flex-shrink-0">
+                <span className="text-xs text-ink-2">
                   共 {pagination.total} 条，第 {pagination.page}/{pagination.totalPages} 页
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handlePageChange(pagination.page - 1)}
                     disabled={pagination.page <= 1}
-                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded-lg text-ink-2 hover:bg-surface-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -690,14 +690,14 @@ export default function OthersPage() {
                       return (
                         <div key={p} className="flex items-center gap-1">
                           {showEllipsisBefore && (
-                            <span className="px-1 text-slate-400 text-xs">...</span>
+                            <span className="px-1 text-ink-3 text-xs">...</span>
                           )}
                           <button
                             onClick={() => handlePageChange(p)}
                             className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
                               pagination.page === p
-                                ? 'bg-indigo-500 text-white'
-                                : 'text-slate-600 hover:bg-slate-200'
+                                ? 'bg-surface-20 text-white'
+                                : 'text-ink-2 hover:bg-surface-2'
                             }`}
                           >
                             {p}
@@ -708,7 +708,7 @@ export default function OthersPage() {
                   <button
                     onClick={() => handlePageChange(pagination.page + 1)}
                     disabled={pagination.page >= pagination.totalPages}
-                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded-lg text-ink-2 hover:bg-surface-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -722,18 +722,18 @@ export default function OthersPage() {
       {/* ═══════════════════════ Add / Edit Employee Form Modal ═══════════════════════ */}
       {showFormModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-center p-5 border-b border-slate-100">
+            <div className="flex justify-between items-center p-5 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-600">
+                <div className="p-1.5 rounded-lg bg-surface-2 text-brand-700">
                   <User className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-lg text-slate-800">
+                <h3 className="font-bold text-lg text-ink">
                   {formMode === 'add' ? '新增员工' : '编辑员工'}
                 </h3>
               </div>
-              <button onClick={() => setShowFormModal(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setShowFormModal(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -742,7 +742,7 @@ export default function OthersPage() {
             <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
               {/* 角色 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   角色 <span className="text-red-400">*</span>
                 </label>
                 <select
@@ -751,7 +751,7 @@ export default function OthersPage() {
                   className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-colors ${
                     formErrors.role
                       ? 'border-red-300 focus:ring-red-500/20 focus:border-red-400'
-                      : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-300'
+                      : 'border-border-strong focus:ring-brand/20 focus:border-brand-600'
                   }`}
                 >
                   {ROLE_FORM_OPTIONS.map((opt) => (
@@ -765,7 +765,7 @@ export default function OthersPage() {
 
               {/* 账户名 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   账户名 {formMode === 'add' && <span className="text-red-400">*</span>}
                 </label>
                 <input
@@ -775,11 +775,11 @@ export default function OthersPage() {
                   placeholder="请输入登录账户名"
                   disabled={formMode === 'edit'}
                   className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-colors ${
-                    formMode === 'edit' ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''
+                    formMode === 'edit' ? 'bg-surface-2 text-ink-2 cursor-not-allowed' : ''
                   } ${
                     formErrors.username
                       ? 'border-red-300 focus:ring-red-500/20 focus:border-red-400'
-                      : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-300'
+                      : 'border-border-strong focus:ring-brand/20 focus:border-brand-600'
                   }`}
                 />
                 {formErrors.username && (
@@ -789,8 +789,8 @@ export default function OthersPage() {
 
               {/* 手机号 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  手机号 <span className="text-slate-400 font-normal text-xs">(选填)</span>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  手机号 <span className="text-ink-3 font-normal text-xs">(选填)</span>
                 </label>
                 <input
                   type="text"
@@ -801,7 +801,7 @@ export default function OthersPage() {
                   className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-colors ${
                     formErrors.phone
                       ? 'border-red-300 focus:ring-red-500/20 focus:border-red-400'
-                      : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-300'
+                      : 'border-border-strong focus:ring-brand/20 focus:border-brand-600'
                   }`}
                 />
                 {formErrors.phone && (
@@ -811,12 +811,12 @@ export default function OthersPage() {
 
               {/* 密码 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   密码{' '}
                   {formMode === 'add' ? (
                     <span className="text-red-400">*</span>
                   ) : (
-                    <span className="text-slate-400 font-normal text-xs">(留空则不修改密码)</span>
+                    <span className="text-ink-3 font-normal text-xs">(留空则不修改密码)</span>
                   )}
                 </label>
                 <div className="relative">
@@ -828,13 +828,13 @@ export default function OthersPage() {
                     className={`w-full px-3 py-2 pr-10 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-colors ${
                       formErrors.password
                         ? 'border-red-300 focus:ring-red-500/20 focus:border-red-400'
-                        : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-300'
+                        : 'border-border-strong focus:ring-brand/20 focus:border-brand-600'
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink-2"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -846,12 +846,12 @@ export default function OthersPage() {
 
               {/* 确认密码 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   确认密码{' '}
                   {formMode === 'add' ? (
                     <span className="text-red-400">*</span>
                   ) : (
-                    <span className="text-slate-400 font-normal text-xs">(填写密码时才需确认)</span>
+                    <span className="text-ink-3 font-normal text-xs">(填写密码时才需确认)</span>
                   )}
                 </label>
                 <div className="relative">
@@ -862,18 +862,18 @@ export default function OthersPage() {
                     placeholder="请再次输入密码"
                     disabled={formMode === 'edit' && !formData.password}
                     className={`w-full px-3 py-2 pr-10 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-colors ${
-                      formMode === 'edit' && !formData.password ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : ''
+                      formMode === 'edit' && !formData.password ? 'bg-surface-2 text-ink-3 cursor-not-allowed' : ''
                     } ${
                       formErrors.confirmPassword
                         ? 'border-red-300 focus:ring-red-500/20 focus:border-red-400'
-                        : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-300'
+                        : 'border-border-strong focus:ring-brand/20 focus:border-brand-600'
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     disabled={formMode === 'edit' && !formData.password}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink-2 disabled:opacity-30"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -885,13 +885,13 @@ export default function OthersPage() {
 
               {/* 状态 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  状态 <span className="text-slate-400 font-normal text-xs">(选填)</span>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  状态 <span className="text-ink-3 font-normal text-xs">(选填)</span>
                 </label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+                  className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand-600"
                 >
                   <option value={1}>启用</option>
                   <option value={0}>禁用</option>
@@ -900,17 +900,17 @@ export default function OthersPage() {
             </div>
 
             {/* Form Footer */}
-            <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+            <div className="p-5 border-t border-border flex justify-end gap-3 bg-surface-2/50">
               <button
                 onClick={() => setShowFormModal(false)}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-colors"
+                className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
               >
                 取消
               </button>
               <button
                 onClick={handleFormSubmit}
                 disabled={formSubmitting}
-                className="px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {formSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 保存
@@ -923,20 +923,20 @@ export default function OthersPage() {
       {/* ═══════════════════════ Delete Confirmation Modal ═══════════════════════ */}
       {showDeleteModal && deletingUser && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="p-6 text-center">
               <div className="mx-auto w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">确认删除该员工？</h3>
-              <p className="text-sm text-slate-500">
-                您确定要删除 <span className="font-semibold text-slate-700">{deletingUser.username}</span> 吗？此操作不可撤销。
+              <h3 className="text-lg font-bold text-ink mb-2">确认删除该员工？</h3>
+              <p className="text-sm text-ink-2">
+                您确定要删除 <span className="font-semibold text-ink">{deletingUser.username}</span> 吗？此操作不可撤销。
               </p>
             </div>
-            <div className="p-4 border-t border-slate-100 flex justify-center gap-3 bg-slate-50/50">
+            <div className="p-4 border-t border-border flex justify-center gap-3 bg-surface-2/50">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-6 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-colors"
+                className="px-6 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
               >
                 取消
               </button>

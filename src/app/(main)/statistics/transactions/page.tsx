@@ -223,16 +223,16 @@ export default function TransactionStatisticsPage() {
     <div className="w-full h-full p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">收支流水统计</h2>
-          <p className="text-slate-500 text-sm mt-1">查看会员充值与消费的详细统计数据</p>
+          <h2 className="text-2xl font-bold text-ink">收支流水统计</h2>
+          <p className="text-ink-2 text-sm mt-1">查看会员充值与消费的详细统计数据</p>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
+      <div className="bg-surface p-4 rounded-xl border border-border-strong shadow-sm mb-6">
         <form onSubmit={handleSearch} className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <label className="text-xs font-medium text-ink-2 flex items-center gap-1">
               <Calendar className="w-3 h-3" /> 开始日期
             </label>
             <input
@@ -240,12 +240,12 @@ export default function TransactionStatisticsPage() {
               name="startDate"
               value={filters.startDate}
               onChange={handleFilterChange}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
+              className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
             />
           </div>
           
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <label className="text-xs font-medium text-ink-2 flex items-center gap-1">
               <Calendar className="w-3 h-3" /> 结束日期
             </label>
             <input
@@ -253,19 +253,19 @@ export default function TransactionStatisticsPage() {
               name="endDate"
               value={filters.endDate}
               onChange={handleFilterChange}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
+              className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <label className="text-xs font-medium text-ink-2 flex items-center gap-1">
               <Filter className="w-3 h-3" /> 交易类型
             </label>
             <select
               name="type"
               value={filters.type}
               onChange={handleFilterChange}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black min-w-[120px]"
+              className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black min-w-[120px]"
             >
               <option value="all">全部</option>
               <option value="recharge">仅充值</option>
@@ -274,7 +274,7 @@ export default function TransactionStatisticsPage() {
           </div>
 
           <div className="space-y-1 relative" onClick={(e) => e.stopPropagation()}>
-            <label className="text-xs font-medium text-slate-500 flex items-center gap-1">
+            <label className="text-xs font-medium text-ink-2 flex items-center gap-1">
               <Search className="w-3 h-3" /> 会员搜索
             </label>
             <input
@@ -285,27 +285,27 @@ export default function TransactionStatisticsPage() {
               onChange={handleFilterChange}
               onFocus={() => { if(filters.member) setShowSuggestions(true); }}
               autoComplete="off"
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black w-[160px]"
+              className="px-3 py-2 bg-surface-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black w-[160px]"
             />
             {showSuggestions && (
-                <div className="absolute top-full left-0 w-[240px] bg-white border border-slate-200 rounded-lg shadow-xl mt-1 z-50 max-h-[300px] overflow-y-auto">
+                <div className="absolute top-full left-0 w-[240px] bg-surface border border-border-strong rounded-lg shadow-xl mt-1 z-50 max-h-[300px] overflow-y-auto">
                     {suggestionLoading ? (
-                        <div className="p-3 text-center text-xs text-slate-400">加载中...</div>
+                        <div className="p-3 text-center text-xs text-ink-3">加载中...</div>
                     ) : suggestions.length > 0 ? (
                         <ul className="py-1">
                             {suggestions.map((item) => (
                                 <li 
                                     key={item.id}
                                     onClick={() => selectMember(item)}
-                                    className="px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0"
+                                    className="px-3 py-2 hover:bg-surface-2 cursor-pointer border-b border-border last:border-0"
                                 >
-                                    <div className="text-sm font-medium text-slate-700">{item.name}</div>
-                                    <div className="text-xs text-slate-400">{item.phone}</div>
+                                    <div className="text-sm font-medium text-ink">{item.name}</div>
+                                    <div className="text-xs text-ink-3">{item.phone}</div>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <div className="p-3 text-center text-xs text-slate-400">无匹配会员</div>
+                        <div className="p-3 text-center text-xs text-ink-3">无匹配会员</div>
                     )}
                 </div>
             )}
@@ -314,9 +314,9 @@ export default function TransactionStatisticsPage() {
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
+            className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
           >
-            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Search className="w-4 h-4" />}
+            {loading ? <div className="w-4 h-4 border-2 border-surface/30 border-t-white rounded-full animate-spin" /> : <Search className="w-4 h-4" />}
             查询
           </button>
           
@@ -324,7 +324,7 @@ export default function TransactionStatisticsPage() {
             type="button"
             onClick={handleReset}
             disabled={loading}
-            className="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 hover:text-slate-800 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
+            className="px-4 py-2 bg-surface text-ink-2 border border-border-strong rounded-lg text-sm font-medium hover:bg-surface-2 hover:text-ink transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             重置
@@ -334,55 +334,55 @@ export default function TransactionStatisticsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-slate-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+        <div className="bg-surface p-6 rounded-2xl border border-border-strong shadow-sm relative overflow-hidden group">
+          <div className="absolute right-0 top-0 w-24 h-24 bg-surface-2 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
           <div className="relative">
-            <div className="flex items-center gap-2 text-slate-800 mb-2">
-              <div className="p-2 bg-slate-200 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-slate-800" />
+            <div className="flex items-center gap-2 text-ink mb-2">
+              <div className="p-2 bg-surface-2 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-ink" />
               </div>
               <span className="font-medium">期间总充值</span>
             </div>
-            <div className="text-3xl font-bold text-slate-800">
+            <div className="text-3xl font-bold text-ink">
               {loading ? '-' : `¥${data?.summary?.totalRecharge?.toLocaleString() || 0}`}
             </div>
-            <div className="text-xs text-slate-400 mt-1">
+            <div className="text-xs text-ink-3 mt-1">
                 {filters.startDate} 至 {filters.endDate}
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-slate-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+        <div className="bg-surface p-6 rounded-2xl border border-border-strong shadow-sm relative overflow-hidden group">
+          <div className="absolute right-0 top-0 w-24 h-24 bg-surface-2 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
           <div className="relative">
-            <div className="flex items-center gap-2 text-slate-800 mb-2">
-              <div className="p-2 bg-slate-200 rounded-lg">
-                <TrendingDown className="w-5 h-5 text-slate-800" />
+            <div className="flex items-center gap-2 text-ink mb-2">
+              <div className="p-2 bg-surface-2 rounded-lg">
+                <TrendingDown className="w-5 h-5 text-ink" />
               </div>
               <span className="font-medium">期间总消费</span>
             </div>
-            <div className="text-3xl font-bold text-slate-800">
+            <div className="text-3xl font-bold text-ink">
               {loading ? '-' : `¥${data?.summary?.totalConsumption?.toLocaleString() || 0}`}
             </div>
-             <div className="text-xs text-slate-400 mt-1">
+             <div className="text-xs text-ink-3 mt-1">
                 {filters.startDate} 至 {filters.endDate}
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-slate-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+        <div className="bg-surface p-6 rounded-2xl border border-border-strong shadow-sm relative overflow-hidden group">
+          <div className="absolute right-0 top-0 w-24 h-24 bg-surface-2 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
           <div className="relative">
-            <div className="flex items-center gap-2 text-slate-800 mb-2">
-              <div className="p-2 bg-slate-200 rounded-lg">
-                <Activity className="w-5 h-5 text-slate-800" />
+            <div className="flex items-center gap-2 text-ink mb-2">
+              <div className="p-2 bg-surface-2 rounded-lg">
+                <Activity className="w-5 h-5 text-ink" />
               </div>
               <span className="font-medium">净收支</span>
             </div>
-            <div className={`text-3xl font-bold ${data?.summary?.netIncome >= 0 ? 'text-slate-800' : 'text-slate-600'}`}>
+            <div className={`text-3xl font-bold ${data?.summary?.netIncome >= 0 ? 'text-ink' : 'text-ink-2'}`}>
               {loading ? '-' : `¥${data?.summary?.netIncome?.toLocaleString() || 0}`}
             </div>
-             <div className="text-xs text-slate-400 mt-1">
+             <div className="text-xs text-ink-3 mt-1">
                 充值 - 消费
             </div>
           </div>
@@ -390,8 +390,8 @@ export default function TransactionStatisticsPage() {
       </div>
 
       {/* Chart Section */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+      <div className="bg-surface p-6 rounded-2xl border border-border-strong shadow-sm">
+        <h3 className="text-lg font-bold text-ink mb-6 flex items-center gap-2">
             <div className="w-1 h-6 bg-black rounded-full" />
             趋势分析
         </h3>

@@ -12,7 +12,7 @@ export function TableSkeleton({ columns, rows = 5 }: TableSkeletonProps) {
         <tr key={rowIndex} className="animate-pulse">
           {Array.from({ length: columns }).map((_, colIndex) => (
             <td key={colIndex} className="px-4 py-4">
-              <div className="h-4 bg-slate-100 rounded w-full"></div>
+              <div className="h-4 bg-surface-2 rounded w-full"></div>
             </td>
           ))}
         </tr>

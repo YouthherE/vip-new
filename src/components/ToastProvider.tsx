@@ -61,9 +61,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={t.id}
             className={`
               pointer-events-auto min-w-[300px] max-w-md p-4 rounded-lg shadow-lg border flex items-start gap-3 transform transition-all duration-300 animate-in slide-in-from-right-full fade-in
-              ${t.type === 'success' ? 'bg-white border-green-100 text-green-800' : ''}
-              ${t.type === 'error' ? 'bg-white border-red-100 text-red-800' : ''}
-              ${t.type === 'info' ? 'bg-white border-blue-100 text-blue-800' : ''}
+              ${t.type === 'success' ? 'bg-surface border-green-100 text-green-800' : ''}
+              ${t.type === 'error' ? 'bg-surface border-red-100 text-red-800' : ''}
+              ${t.type === 'info' ? 'bg-surface border-blue-100 text-blue-800' : ''}
             `}
           >
             <div className="flex-shrink-0 mt-0.5">
@@ -74,7 +74,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div className="flex-1 text-sm font-medium">{t.message}</div>
             <button
               onClick={() => removeToast(t.id)}
-              className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
+              className="flex-shrink-0 text-ink-3 hover:text-ink-2 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
