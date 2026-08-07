@@ -750,56 +750,55 @@ ${operatorHtml}
       <div className="bg-surface overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Header / Toolbar — 合并搜索+扫码 */}
         <div className="p-4 border-b border-border flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-brand-700" />
               <h2 className="font-bold text-lg text-ink">收银台</h2>
             </div>
+            <span className="text-xs text-ink-3">扫码枪 / 条码 / 商品名均可查询</span>
+          </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-stretch">
-                {/* 搜索/扫码合一输入框 */}
-                <div className="relative flex-1 min-w-0">
-                  {loading ? (
-                    <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 animate-spin" />
-                  ) : scanning ? (
-                    <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-600 animate-spin" />
-                  ) : (
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
-                  )}
-                  <input
-                    ref={scanInputRef}
-                    type="text"
-                    placeholder="搜索商品名称，或扫描条码…"
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); if (e.target.value === '') { setScanStatus('idle'); setScanFeedback(''); } }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleScanProduct(); }}
-                    disabled={isModalOpen}
-                    className="w-full pl-10 pr-4 py-2 bg-surface-2 border border-border-strong rounded-l-full focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                {/* 扫码按钮 */}
-                <button
-                  onClick={() => setShowProductScanner(true)}
+          <div className="max-w-lg">
+            <div className="flex items-stretch">
+              {/* 搜索/扫码合一输入框 */}
+              <div className="relative flex-1 min-w-0">
+                {loading || scanning ? (
+                  <Loader2 className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin ${scanning ? 'text-brand-600' : 'text-ink-3'}`} />
+                ) : (
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
+                )}
+                <input
+                  ref={scanInputRef}
+                  type="text"
+                  placeholder="搜索商品名称，或扫描条码…"
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); if (e.target.value === '') { setScanStatus('idle'); setScanFeedback(''); } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleScanProduct(); }}
                   disabled={isModalOpen}
-                  className="btn btn-primary btn-md rounded-l-none rounded-r-full border-l-0 flex-shrink-0"
-                  title="扫码查询商品"
-                >
-                  <Barcode className="w-4 h-4" />
-                  <span className="hidden sm:inline">扫码</span>
-                </button>
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-2 border border-border-strong rounded-l-full focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                />
               </div>
 
-              {/* 扫描反馈 */}
-              {scanFeedback && (
-                <div className={`mt-1 ml-1 text-xs font-medium transition-all duration-300 ${
-                  scanStatus === 'success' ? 'text-emerald-600' : 'text-red-500'
-                }`}>
-                  {scanStatus === 'success' ? '✓ ' : '✗ '}{scanFeedback}
-                </div>
-              )}
+              {/* 扫码按钮 */}
+              <button
+                onClick={() => setShowProductScanner(true)}
+                disabled={isModalOpen}
+                className="btn btn-primary btn-md rounded-l-none rounded-r-full border-l-0 flex-shrink-0"
+                title="扫码查询商品"
+              >
+                <Barcode className="w-4 h-4" />
+                <span className="hidden sm:inline">扫码</span>
+              </button>
             </div>
+
+            {/* 扫描反馈 */}
+            {scanFeedback && (
+              <div className={`mt-1.5 ml-1 text-xs font-medium transition-all duration-300 ${
+                scanStatus === 'success' ? 'text-emerald-600' : 'text-red-500'
+              }`}>
+                {scanStatus === 'success' ? '✓ ' : '✗ '}{scanFeedback}
+              </div>
+            )}
           </div>
         </div>
 
