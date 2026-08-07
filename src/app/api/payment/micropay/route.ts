@@ -257,6 +257,10 @@ export async function POST(request: Request) {
 
   } catch (e: any) {
     console.error('Micropay error:', e);
-    return jsonResponse(error(500, e.message || '支付系统繁忙，请稍后重试'), 500);
+    const raw = (e?.message || '') as string;
+    const msg = raw.startsWith('支付平台配置未就绪')
+      ? '支付平台配置未就绪，请联系管理员'
+      : raw || '支付系统繁忙，请稍后重试';
+    return jsonResponse(error(503, msg), 503);
   }
 }

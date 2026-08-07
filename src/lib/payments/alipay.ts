@@ -16,7 +16,7 @@ import type { PaymentProvider, PaymentRequest, PaymentResult } from './types';
 
 function env(key: string): string {
   const v = process.env[key];
-  if (!v) throw new Error(`缺少环境变量: ${key}`);
+  if (!v) throw new Error(`支付平台配置未就绪：${key} 未设置`);
   return v;
 }
 
