@@ -928,7 +928,7 @@ ${operatorHtml}
       {/* ──── Checkout Modal ──── */}
       {showCheckout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="modal-card w-full max-w-md">
+          <div className="modal-card w-full max-w-sm">
             {/* Header */}
             <div className="modal-header">
               <h3 className="font-bold text-base text-ink">结算</h3>
