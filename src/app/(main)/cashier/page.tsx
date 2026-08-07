@@ -248,6 +248,7 @@ export default function CashierPage() {
   // ──── Payment ────
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showProductScanner, setShowProductScanner] = useState(false); // 产品条码扫码
   const [pendingPriceType, setPendingPriceType] = useState<'normal' | 'member'>('normal');
   const [payingOut, setPayingOut] = useState(false);
   const [paymentError, setPaymentError] = useState('');
@@ -264,7 +265,6 @@ export default function CashierPage() {
   const [entryCounts, setEntryCounts] = useState<{ date: string; list: EntryCountItem[]; total: number }>({ date: '', list: [], total: 0 });
 
   // ──── Barcode Scanner ────
-  const [scanCode, setScanCode] = useState('');
   const [scanStatus, setScanStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [scanFeedback, setScanFeedback] = useState('');
   const [scanning, setScanning] = useState(false);
@@ -443,6 +443,12 @@ export default function CashierPage() {
     setShowScanner(true);
   };
 
+  /** 相机扫码 → 查询/添加商品 */
+  const handleProductCameraScan = async (scannedCode: string) => {
+    setShowProductScanner(false);
+    await handleScanProduct(scannedCode);
+  };
+
   /** 扫码成功后 → 调用 micropay API */
   const handleScanSuccess = async (authCode: string) => {
     setShowScanner(false);
@@ -499,7 +505,7 @@ export default function CashierPage() {
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   // 弹窗打开时屏蔽扫码防止误触发
-  const isModalOpen = showCheckout || showPaymentModal || showScanner || showSuccess || payingOut || showPrintPreview;
+  const isModalOpen = showCheckout || showPaymentModal || showScanner || showProductScanner || showSuccess || payingOut || showPrintPreview;
 
   // ──── Scan Input Auto-focus ────
   useEffect(() => {
@@ -510,14 +516,14 @@ export default function CashierPage() {
   }, [isModalOpen]);
 
   // ──── Barcode Scan Handler ────
-  const handleScanProduct = async () => {
-    const code = scanCode.trim();
-    if (!code || scanning || isModalOpen) return;
+  const handleScanProduct = async (code?: string) => {
+    const scanVal = (code ?? search).trim();
+    if (!scanVal || scanning || isModalOpen) return;
 
     setScanning(true);
     setScanFeedback('');
     try {
-      const res = await api.get('/cashier/products/scan', { params: { code } });
+      const res = await api.get('/cashier/products/scan', { params: { code: scanVal } });
       if (res.data.code === 200) {
         const product: Product = res.data.data;
         const existingInCart = cart.get(product.id);
@@ -542,7 +548,7 @@ export default function CashierPage() {
       setScanStatus('error');
     } finally {
       setScanning(false);
-      setScanCode('');
+      setSearch('');
       setTimeout(() => {
         setScanStatus('idle');
         setScanFeedback('');
@@ -742,60 +748,56 @@ ${operatorHtml}
   return (
     <div className="h-full flex flex-col">
       <div className="bg-surface overflow-hidden flex flex-col flex-1 min-h-0">
-        {/* Header / Toolbar */}
-        <div className="p-4 border-b border-border flex-shrink-0 flex justify-between items-center gap-4 flex-wrap">
+        {/* Header / Toolbar — 合并搜索+扫码 */}
+        <div className="p-4 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <ShoppingCart className="w-5 h-5 text-brand-700" />
               <h2 className="font-bold text-lg text-ink">收银台</h2>
             </div>
-            <div className="relative w-56">
-              {loading && search ? (
-                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 animate-spin" />
-              ) : (
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
-              )}
-              <input
-                type="text"
-                placeholder="搜索商品名称..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-1.5 bg-surface-2 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-sm"
-              />
-            </div>
 
-            {/* ──── Barcode Scanner ──── */}
-            <div className="flex items-center gap-2">
-              <div className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all duration-300 ${
-                scanStatus === 'success' ? 'bg-emerald-50 border-emerald-300' :
-                scanStatus === 'error' ? 'bg-red-50 border-red-300' :
-                isModalOpen ? 'bg-surface-2 border-border-strong opacity-50' :
-                'bg-surface-2 border-border-strong'
-              }`}>
-                <Barcode className={`w-4 h-4 transition-colors duration-300 ${
-                  scanStatus === 'success' ? 'text-emerald-500' :
-                  scanStatus === 'error' ? 'text-red-400' :
-                  isModalOpen ? 'text-ink-3' :
-                  scanning ? 'text-brand-600 animate-pulse' : 'text-brand-600 animate-pulse'
-                }`} />
-                <input
-                  ref={scanInputRef}
-                  type="text"
+            <div className="flex-1 min-w-0">
+              <div className="flex items-stretch">
+                {/* 搜索/扫码合一输入框 */}
+                <div className="relative flex-1 min-w-0">
+                  {loading ? (
+                    <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3 animate-spin" />
+                  ) : scanning ? (
+                    <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-600 animate-spin" />
+                  ) : (
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
+                  )}
+                  <input
+                    ref={scanInputRef}
+                    type="text"
+                    placeholder="搜索商品名称，或扫描条码…"
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); if (e.target.value === '') { setScanStatus('idle'); setScanFeedback(''); } }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleScanProduct(); }}
+                    disabled={isModalOpen}
+                    className="w-full pl-10 pr-4 py-2 bg-surface-2 border border-border-strong rounded-l-full focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                {/* 扫码按钮 */}
+                <button
+                  onClick={() => setShowProductScanner(true)}
                   disabled={isModalOpen}
-                  placeholder="扫码枪扫描条码..."
-                  value={scanCode}
-                  onChange={(e) => setScanCode(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleScanProduct(); }}
-                  className="w-36 bg-transparent text-sm outline-none placeholder-ink-3 disabled:cursor-not-allowed"
-                />
-                {scanning && <Loader2 className="w-3.5 h-3.5 text-brand-600 animate-spin" />}
+                  className="btn btn-primary btn-md rounded-l-none rounded-r-full border-l-0 flex-shrink-0"
+                  title="扫码查询商品"
+                >
+                  <Barcode className="w-4 h-4" />
+                  <span className="hidden sm:inline">扫码</span>
+                </button>
               </div>
+
+              {/* 扫描反馈 */}
               {scanFeedback && (
-                <span className={`text-xs font-medium whitespace-nowrap transition-all duration-300 ${
+                <div className={`mt-1 ml-1 text-xs font-medium transition-all duration-300 ${
                   scanStatus === 'success' ? 'text-emerald-600' : 'text-red-500'
                 }`}>
-                  {scanFeedback}
-                </span>
+                  {scanStatus === 'success' ? '✓ ' : '✗ '}{scanFeedback}
+                </div>
               )}
             </div>
           </div>
@@ -1199,11 +1201,19 @@ ${operatorHtml}
         </div>
       )}
 
-      {/* ──── QR Scanner Modal ──── */}
-      {showScanner && !payingOut && (
+      {/* ──── QR Scanner Modal (支付扫码) ──── */}
+      {showScanner && !payingOut && !showProductScanner && (
         <QRScanner
           onScan={handleScanSuccess}
           onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* ──── QR Scanner Modal (产品条码扫码) ──── */}
+      {showProductScanner && (
+        <QRScanner
+          onScan={handleProductCameraScan}
+          onClose={() => setShowProductScanner(false)}
         />
       )}
 
