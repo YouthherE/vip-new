@@ -2,6 +2,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
 import { getChinaTime } from '@/lib/utils/time';
+import { getAuthUser, requireRole } from '@/lib/utils/auth';
 
 export async function GET(request: Request) {
     try {
@@ -63,6 +64,12 @@ export async function POST(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证 + 角色校验：仅管理员可创建商品
+        const authUser = await getAuthUser(request, db);
+        const roleErr = requireRole(authUser, 'super_admin', 'admin');
+        if (roleErr) return roleErr;
+
         const body = await request.json() as any;
         const { name, code, regular_price, member_price, image } = body;
 
@@ -119,6 +126,12 @@ export async function PUT(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证 + 角色校验：仅管理员可编辑商品
+        const authUser = await getAuthUser(request, db);
+        const roleErr = requireRole(authUser, 'super_admin', 'admin');
+        if (roleErr) return roleErr;
+
         const body = await request.json() as any;
         const { id, name, code, regular_price, member_price, image } = body;
 
@@ -185,6 +198,12 @@ export async function DELETE(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证 + 角色校验：仅管理员可删除商品
+        const authUser = await getAuthUser(request, db);
+        const roleErr = requireRole(authUser, 'super_admin', 'admin');
+        if (roleErr) return roleErr;
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 

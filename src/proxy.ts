@@ -26,7 +26,15 @@ export async function proxy(request: NextRequest) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { code: 401, message: 'Unauthorized: Missing or invalid token', data: null },
-        { status: 401 }
+        {
+          status: 401,
+          headers: {
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'X-XSS-Protection': '1; mode=block',
+            'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'",
+          },
+        }
       );
     }
 
@@ -36,7 +44,15 @@ export async function proxy(request: NextRequest) {
     if (!payload) {
       return NextResponse.json(
         { code: 401, message: 'Unauthorized: Invalid or expired token', data: null },
-        { status: 401 }
+        {
+          status: 401,
+          headers: {
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'X-XSS-Protection': '1; mode=block',
+            'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'",
+          },
+        }
       );
     }
 

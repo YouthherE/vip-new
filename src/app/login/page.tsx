@@ -123,7 +123,9 @@ export default function LoginPage() {
       if (response.data.code === 200) {
         const { token, user } = response.data.data;
         localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        // 仅存非敏感字段到 localStorage，敏感字段（phone/email）按需通过 /api/auth/me 获取
+        const { phone, email, ...safeUser } = user;
+        localStorage.setItem('user', JSON.stringify(safeUser));
         showToast('登录成功，正在进入控制台…');
         setTimeout(() => router.push('/'), 600);
       } else {

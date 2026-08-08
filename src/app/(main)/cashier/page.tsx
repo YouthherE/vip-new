@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import api from '@/lib/axios';
+import { escapeHtml } from '@/lib/utils/html';
 import { useToast } from '@/components/ToastProvider';
 import {
   X, Loader2, ShoppingCart, ImageIcon,
@@ -59,7 +60,7 @@ interface CheckoutItem {
 
 // ──── Print Ticket Component ────
 // Print spec: 80mm × 60mm thermal receipt
-function PrintTicketContent({ result }: { result: CheckoutResult }) {
+function PrintTicketContent({ result, operatorPhone: opPhone, operatorAddress: opAddress }: { result: CheckoutResult; operatorPhone?: string; operatorAddress?: string }) {
   const ticketNo = result.order_no;
   const entryDate = new Date(result.created_at);
   const entryDateStr = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}-${String(entryDate.getDate()).padStart(2, '0')}`;
@@ -71,18 +72,16 @@ function PrintTicketContent({ result }: { result: CheckoutResult }) {
   const totalHeads = result.items.reduce((s, i) => s + i.quantity, 0);
 
   // Get current operator info from localStorage
-  let operatorName = '';
-  let operatorPhone = '';
-  let operatorAddress = '';
-  try {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      operatorName = user.username || '';
-      operatorPhone = user.phone || '';
-      operatorAddress = user.address || '';
-    }
-  } catch {}
+  const operatorName = (() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.username || '';
+      }
+    } catch {}
+    return '';
+  })();
 
   return (
     <>
@@ -215,8 +214,8 @@ function PrintTicketContent({ result }: { result: CheckoutResult }) {
 
       {/* Footer */}
       <div className="tk" style={{ fontSize: '7px', color: '#888', textAlign: 'center', lineHeight: '1.4' }}>
-        {operatorPhone && <div>📞客服电话：{operatorPhone} · 当日有效仅限本人</div>}
-        {operatorAddress && <div>📍{operatorAddress}</div>}
+        {opPhone && <div>📞客服电话：{escapeHtml(opPhone)} · 当日有效仅限本人</div>}
+        {opAddress && <div>📍{escapeHtml(opAddress)}</div>}
         <div>退票：未使用可退，过期作废</div>
       </div>
 
@@ -252,6 +251,10 @@ export default function CashierPage() {
   const [payingOut, setPayingOut] = useState(false);
   const [paymentError, setPaymentError] = useState('');
 
+  // ──── Operator info (fetched from API, not localStorage) ────
+  const [operatorPhone, setOperatorPhone] = useState('');
+  const [operatorAddress, setOperatorAddress] = useState('');
+
   // ──── Member lookup ────
   const [memberKeyword, setMemberKeyword] = useState('');
   const [memberInfo, setMemberInfo] = useState<MemberInfo | null>(null);
@@ -276,6 +279,24 @@ export default function CashierPage() {
         setEntryCounts(res.data.data);
       }
     } catch { /* ignore */ }
+  }, []);
+
+  // 从服务端获取当前操作员手机号/地址（不在 localStorage 中存敏感字段）
+  useEffect(() => {
+    const fetchOperator = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json() as { code?: number; data?: any };
+        if (res.ok && json.code === 200 && json.data) {
+          setOperatorPhone(json.data.phone || '');
+          setOperatorAddress(json.data.address || '');
+        }
+      } catch { /* ignore */ }
+    };
+    fetchOperator();
   }, []);
 
   useEffect(() => {
@@ -581,12 +602,12 @@ export default function CashierPage() {
 
     // Visitor items list
     const visitorItemsHtml = checkoutResult.items.map(item =>
-      `<div style="font-size:8px;color:#555">${item.product_name} ×${item.quantity}</div>`
+      `<div style="font-size:8px;color:#555">${escapeHtml(item.product_name)} ×${item.quantity}</div>`
     ).join('');
 
     // Entry counts line
     const entryCountsLine = checkoutResult.items.map(item =>
-      `${item.product_name} NO.${item.entry_count}`
+      `${escapeHtml(item.product_name)} NO.${item.entry_count}`
     ).join(' · ');
 
     // Price items list (with dual pricing for members)
@@ -596,9 +617,9 @@ export default function CashierPage() {
       const itemRegularTotal = item.normal_price * item.quantity;
       let itemHtml = '';
       if (isMember) {
-        itemHtml += `<div style="font-size:7px;display:flex;justify-content:space-between;color:#999;text-decoration:line-through"><span>${item.product_name.slice(0, 4)} 原价</span><span>¥${itemRegularTotal.toFixed(2)}</span></div>`;
+        itemHtml += `<div style="font-size:7px;display:flex;justify-content:space-between;color:#999;text-decoration:line-through"><span>${escapeHtml(item.product_name.slice(0, 4))} 原价</span><span>¥${itemRegularTotal.toFixed(2)}</span></div>`;
       }
-      itemHtml += `<div style="font-size:8px;display:flex;justify-content:space-between"><span>${item.product_name.slice(0, 4)}${isMember ? ' 会员' : ''}</span><span>¥${item.subtotal.toFixed(2)}</span></div>`;
+      itemHtml += `<div style="font-size:8px;display:flex;justify-content:space-between"><span>${escapeHtml(item.product_name.slice(0, 4))}${isMember ? ' 会员' : ''}</span><span>¥${item.subtotal.toFixed(2)}</span></div>`;
       return itemHtml;
     }).join('');
     // Discount line
@@ -609,30 +630,26 @@ export default function CashierPage() {
     // Member section (name + phone + balance on one line)
     let memberHtml = '';
     if (checkoutResult.price_type === 'member' && checkoutResult.member_name) {
-      let line = `💳 ${checkoutResult.member_name}${checkoutResult.member_phone ? ' · ' + checkoutResult.member_phone : ''}`;
+      let line = `💳 ${escapeHtml(checkoutResult.member_name)}${checkoutResult.member_phone ? ' · ' + checkoutResult.member_phone : ''}`;
       if (checkoutResult.balance_before !== undefined) {
         line += ` · 扣款前 ¥${checkoutResult.balance_before!.toFixed(2)} → 扣款后 ¥${checkoutResult.balance_after!.toFixed(2)}`;
       }
       memberHtml = `<div style="font-size:7px;margin-top:2px;line-height:1.4;color:#888">${line}</div>`;
     }
 
-    // Get current operator info
+    // Get current operator info (username from localStorage, phone/address from state via API)
     let operatorName = '';
-    let operatorPhone = '';
-    let operatorAddress = '';
     try {
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
         operatorName = user.username || '';
-        operatorPhone = user.phone || '';
-        operatorAddress = user.address || '';
       }
     } catch {}
 
-    const operatorHtml = operatorName ? `<div style="text-align:center;font-size:7px;color:#888;margin-bottom:2px">操作人：${operatorName}</div>` : '';
-    const phoneHtml = operatorPhone ? `<div>📞客服电话：${operatorPhone} · 当日有效仅限本人</div>` : '';
-    const addressHtml = operatorAddress ? `<div>📍${operatorAddress}</div>` : '';
+    const operatorHtml = operatorName ? `<div style="text-align:center;font-size:7px;color:#888;margin-bottom:2px">操作人：${escapeHtml(operatorName)}</div>` : '';
+    const phoneHtml = operatorPhone ? `<div>客服电话：${escapeHtml(operatorPhone)} · 当日有效仅限本人</div>` : '';
+    const addressHtml = operatorAddress ? `<div>${escapeHtml(operatorAddress)}</div>` : '';
 
     const qrData = encodeURIComponent(`票号:${ticketNo}\n入园:${entryDateStr}`);
 
@@ -1215,7 +1232,7 @@ ${operatorHtml}
             {/* Receipt Preview */}
             <div className="overflow-y-auto p-6 flex justify-center bg-surface-2">
               <div className="bg-surface shadow-lg" style={{ width: '280px', minHeight: '400px', padding: '16px 14px', fontFamily: "'PingFang SC', 'Microsoft YaHei', sans-serif", fontSize: '12px' }}>
-                <PrintTicketContent result={checkoutResult} />
+                <PrintTicketContent result={checkoutResult} operatorPhone={operatorPhone} operatorAddress={operatorAddress} />
               </div>
             </div>
 

@@ -2,6 +2,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { hashPassword } from '@/lib/utils/password';
 import { verifyJWT } from '@/lib/utils/jwt';
+import { getAuthUser } from '@/lib/utils/auth';
 import { getChinaTime } from '@/lib/utils/time';
 import { writeOperationLog } from '@/lib/utils/logger';
 
@@ -38,6 +39,12 @@ export async function GET(request: Request) {
   try {
     const { env } = await getCloudflareContext();
     const db = (env as CloudflareEnv).DB;
+
+    // 认证校验（任何登录用户可查看员工列表）
+    const authUser = await getAuthUser(request, db);
+    if (!authUser) {
+      return jsonResponse(error(401, '未授权，请先登录'), 401);
+    }
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');

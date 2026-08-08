@@ -1,7 +1,10 @@
 /**
  * 邮箱配置管理
  * 读取/更新 D1 中的 email_configs 单条配置记录
+ * SMTP/IMAP 密码使用 AES-256-GCM 加密存储
  */
+
+import { encryptField, decryptField } from '@/lib/utils/crypto';
 
 export interface EmailConfig {
   id: number;
@@ -24,20 +27,39 @@ export interface EmailConfig {
 }
 
 /**
- * 获取邮箱配置（D1 数据库）
+ * 获取邮箱配置（D1 数据库），自动解密密码字段
  */
 export async function getEmailConfig(db: D1Database): Promise<EmailConfig | null> {
   const row = await db.prepare('SELECT * FROM email_configs WHERE id = 1').first<EmailConfig>();
-  return row || null;
+  if (!row) return null;
+  return {
+    ...row,
+    smtp_pass: (await decryptField(row.smtp_pass)) ?? row.smtp_pass,
+    imap_pass: (await decryptField(row.imap_pass)) ?? row.imap_pass,
+  };
 }
 
 /**
- * 更新邮箱配置
+ * 更新邮箱配置，自动加密密码字段
  */
 export async function updateEmailConfig(
   db: D1Database,
   data: Partial<Omit<EmailConfig, 'id' | 'created_at' | 'updated_at'>>
 ): Promise<EmailConfig | null> {
+  const processed = { ...data } as any;
+
+  // 加密密码字段（仅在提供新密码时，不处理脱敏占位符）
+  if (processed.smtp_pass !== undefined && !processed.smtp_pass.includes('****')) {
+    processed.smtp_pass = await encryptField(processed.smtp_pass);
+  } else {
+    delete processed.smtp_pass; // 不更新脱敏占位符
+  }
+  if (processed.imap_pass !== undefined && !processed.imap_pass.includes('****')) {
+    processed.imap_pass = await encryptField(processed.imap_pass);
+  } else {
+    delete processed.imap_pass;
+  }
+
   const fields: string[] = [];
   const values: any[] = [];
 
@@ -49,9 +71,9 @@ export async function updateEmailConfig(
   ];
 
   for (const key of allowed) {
-    if ((data as any)[key] !== undefined) {
+    if (processed[key] !== undefined) {
       fields.push(`${key} = ?`);
-      values.push((data as any)[key]);
+      values.push(processed[key]);
     }
   }
 

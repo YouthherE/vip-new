@@ -1,3 +1,5 @@
+import { escapeHtml } from '@/lib/utils/html';
+
 /**
  * 票据打印服务
  * 统一收银台出票 & 订单中心补打的 HTML 生成与打印逻辑
@@ -69,7 +71,7 @@ export function generateTicketHtml(data: TicketData): string {
       const seqLine = i.entry_count > 0
         ? `<div style="font-size:8px;color:#666">NO.${i.entry_count}</div>`
         : '';
-      return `<div style="margin:1px 0;font-size:9px">${i.product_name} ×${i.quantity}${seqLine}</div>`;
+      return `<div style="margin:1px 0;font-size:9px">${escapeHtml(i.product_name)} ×${i.quantity}${seqLine}</div>`;
     })
     .join('');
 
@@ -79,7 +81,7 @@ export function generateTicketHtml(data: TicketData): string {
       const unit = i.sold_price;
       const label = i.price_type === 'member' ? '会员价' : '普通价';
       return `<div style="display:flex;justify-content:space-between;font-size:8px">
-        <span>${i.product_name} ×${i.quantity}(${label})</span>
+        <span>${escapeHtml(i.product_name)} ×${i.quantity}(${label})</span>
         <span>¥${unit.toFixed(2)}</span>
       </div>`;
     })
@@ -101,7 +103,7 @@ export function generateTicketHtml(data: TicketData): string {
     memberHtml = `
 <div style="padding:2px 0;font-size:8px;line-height:1.5">
   <div style="display:flex;justify-content:space-between">
-    <span>会员：${checkoutResult.member_name || ''} (${maskPhone(checkoutResult.member_phone) || ''})</span>
+    <span>会员：${escapeHtml(checkoutResult.member_name || '')} (${maskPhone(checkoutResult.member_phone) || ''})</span>
     <span>余额 ¥${(checkoutResult.balance_before ?? 0).toFixed(2)} → ¥${(checkoutResult.balance_after ?? 0).toFixed(2)}</span>
   </div>
 </div>`;

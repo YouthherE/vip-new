@@ -12,6 +12,20 @@ import {
 import api from '@/lib/axios';
 import { useToast } from '@/components/ToastProvider';
 
+/** 基础 HTML 消毒：移除 script/iframe/object/embed 标签及事件处理器 */
+function sanitizeHtml(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+    .replace(/<embed\b[^<]*\/?>/gi, '')
+    .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/<script\b[^<]*\/?>/gi, '');
+}
+
 // ═══════════════════ Types ═══════════════════
 
 interface EmailConfig {
@@ -553,7 +567,10 @@ export default function EmailPage() {
 
           <div className="p-5 min-h-[300px]">
             {selectedEmail.body_html ? (
-              <div className="text-sm text-ink leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedEmail.body_html }} />
+              <div
+                className="text-sm text-ink leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedEmail.body_html) }}
+              />
             ) : (
               <pre className="text-sm text-ink leading-relaxed font-sans whitespace-pre-wrap">
                 {selectedEmail.body_text || '(无正文内容)'}

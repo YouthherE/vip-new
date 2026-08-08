@@ -2,11 +2,18 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
 import { getChinaTime } from '@/lib/utils/time';
+import { getAuthUser, requireRole } from '@/lib/utils/auth';
 
 export async function PUT(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证 + 角色校验：仅管理员可上下架商品
+        const authUser = await getAuthUser(request, db);
+        const roleErr = requireRole(authUser, 'super_admin', 'admin');
+        if (roleErr) return roleErr;
+
         const body = await request.json() as any;
         const { ids, status } = body;
 

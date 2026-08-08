@@ -2,11 +2,19 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
 import { writeOperationLog } from '@/lib/utils/logger';
 import { getChinaTime } from '@/lib/utils/time';
+import { getAuthUser, requireRole } from '@/lib/utils/auth';
 
 export async function GET(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证校验
+        const authUser = await getAuthUser(request, db);
+        if (!authUser) {
+            return jsonResponse(error(401, '未授权，请先登录'), 401);
+        }
+
         const { searchParams } = new URL(request.url);
         const search = searchParams.get('search');
         
@@ -52,6 +60,12 @@ export async function POST(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证 + 角色校验：仅管理员可创建会员
+        const authUser = await getAuthUser(request, db);
+        const roleErr = requireRole(authUser, 'super_admin', 'admin');
+        if (roleErr) return roleErr;
+
         const body = await request.json() as any;
         const { name, phone, cardcode, cartype, expired_at, remark, gender, address, channel, status } = body;
 
@@ -117,6 +131,12 @@ export async function PUT(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证 + 角色校验：仅管理员可编辑会员
+        const authUser = await getAuthUser(request, db);
+        const roleErr = requireRole(authUser, 'super_admin', 'admin');
+        if (roleErr) return roleErr;
+
         const body = await request.json() as any;
         const { id, name, phone, cardcode, cartype, expired_at, remark, gender, address, channel, status } = body;
 

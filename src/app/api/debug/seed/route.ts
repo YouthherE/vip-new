@@ -1,10 +1,17 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { getAuthUser } from '@/lib/utils/auth';
 
 export async function POST(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 仅超级管理员可生成测试数据
+        const authUser = await getAuthUser(request, db);
+        if (!authUser || authUser.role !== 'super_admin') {
+            return jsonResponse(error(403, '仅超级管理员可执行此操作'), 403);
+        }
 
         // Optional: Clear existing data
         // await db.prepare('DELETE FROM transactions').run();

@@ -1,10 +1,18 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { getAuthUser } from '@/lib/utils/auth';
 
 export async function GET(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证校验
+        const authUser = await getAuthUser(request, db);
+        if (!authUser) {
+            return jsonResponse(error(401, '未授权，请先登录'), 401);
+        }
+
         const { searchParams } = new URL(request.url);
         const search = searchParams.get('search');
         const priceType = searchParams.get('priceType');

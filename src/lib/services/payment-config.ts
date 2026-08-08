@@ -3,8 +3,10 @@
  *
  * 从 D1 数据库中读取/写入微信支付和支付宝的配置参数。
  * DB 配置优先于环境变量，允许超级管理员在后台 UI 中动态修改。
+ * 敏感字段（密钥/私钥）使用 AES-256-GCM 加密存储。
  */
 import type { PaymentGatewayConfig } from '@/lib/payments';
+import { encryptField, decryptField } from '@/lib/utils/crypto';
 
 interface PaymentConfigRow {
   id: number;
@@ -34,13 +36,13 @@ export async function getPaymentConfigs(db: D1Database): Promise<PaymentGatewayC
   return {
     wechatAppId: row.wechat_app_id || undefined,
     wechatMchId: row.wechat_mch_id || undefined,
-    wechatApiV3Key: row.wechat_api_v3_key || undefined,
-    wechatPrivateKey: row.wechat_private_key || undefined,
+    wechatApiV3Key: (await decryptField(row.wechat_api_v3_key)) || undefined,
+    wechatPrivateKey: (await decryptField(row.wechat_private_key)) || undefined,
     wechatCertSerialNo: row.wechat_cert_serial_no || undefined,
     wechatNotifyUrl: row.wechat_notify_url || undefined,
     alipayAppId: row.alipay_app_id || undefined,
-    alipayPrivateKey: row.alipay_private_key || undefined,
-    alipayPublicKey: row.alipay_public_key || undefined,
+    alipayPrivateKey: (await decryptField(row.alipay_private_key)) || undefined,
+    alipayPublicKey: (await decryptField(row.alipay_public_key)) || undefined,
   };
 }
 
@@ -59,7 +61,7 @@ export async function savePaymentConfigs(
     "UPDATE payment_configs SET status = 'inactive', updated_at = ? WHERE status = 'active'",
   ).bind(now).run();
 
-  // 插入新配置
+  // 插入新配置（敏感字段加密存储）
   await db.prepare(
     `INSERT INTO payment_configs (
       wechat_app_id, wechat_mch_id, wechat_api_v3_key,
@@ -70,13 +72,13 @@ export async function savePaymentConfigs(
   ).bind(
     config.wechatAppId || '',
     config.wechatMchId || '',
-    config.wechatApiV3Key || '',
-    config.wechatPrivateKey || '',
+    (await encryptField(config.wechatApiV3Key)) || '',
+    (await encryptField(config.wechatPrivateKey)) || '',
     config.wechatCertSerialNo || '',
     config.wechatNotifyUrl || '',
     config.alipayAppId || '',
-    config.alipayPrivateKey || '',
-    config.alipayPublicKey || '',
+    (await encryptField(config.alipayPrivateKey)) || '',
+    (await encryptField(config.alipayPublicKey)) || '',
     now, now,
   ).run();
 }

@@ -102,7 +102,9 @@ export default function ProfilePage() {
       const json = (await res.json()) as { code?: number; data?: any };
       if (res.ok && json.code === 200 && json.data) {
         const fresh = json.data;
-        localStorage.setItem('user', JSON.stringify(fresh));
+        // 不将敏感字段写回 localStorage
+        const { phone, email, ...safeFresh } = fresh;
+        localStorage.setItem('user', JSON.stringify(safeFresh));
         setUserData(fresh);
         
         const avatar = fresh.avatar || `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(fresh.username || 'Starlight')}&backgroundColor=ffdfbf`;

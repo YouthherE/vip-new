@@ -1,10 +1,18 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { success, error, jsonResponse } from '@/lib/utils/response';
+import { getAuthUser, requireRole } from '@/lib/utils/auth';
 
 export async function GET(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证校验
+        const authUser = await getAuthUser(request, db);
+        if (!authUser) {
+            return jsonResponse(error(401, '未授权，请先登录'), 401);
+        }
+
         const { searchParams } = new URL(request.url);
         const search = searchParams.get('search'); // Member name search
         const type = searchParams.get('type');
@@ -82,6 +90,12 @@ export async function PUT(request: Request) {
     try {
         const { env } = await getCloudflareContext();
         const db = (env as CloudflareEnv).DB;
+
+        // 认证 + 角色校验：仅管理员可修改备注
+        const authUser = await getAuthUser(request, db);
+        const roleErr = requireRole(authUser, 'super_admin', 'admin');
+        if (roleErr) return roleErr;
+
         const body = await request.json() as any;
         const { id, remark } = body;
 
