@@ -425,15 +425,15 @@ export default function MembersPage() {
               ) : (
                 members.map((member) => (
                   <tr key={member.id} className="hover:bg-surface-2 transition-colors">
-                    <td className="px-4 py-3 text-ink-2">{member.id}</td>
+                    <td className="px-4 py-3 text-ink-2 whitespace-nowrap">{member.id}</td>
                     <td className="px-4 py-3">
                         <div>
                             <div className="font-medium text-ink">{member.name}</div>
                             <div className="text-xs text-ink-3 font-mono">{member.phone}</div>
                         </div>
                     </td>
-                    <td className="px-4 py-3 text-ink-2 font-mono text-xs">{member.cardcode || '-'}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-ink-2 font-mono text-xs whitespace-nowrap">{member.cardcode || '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                             member.cartype === 'yearly' ? 'bg-purple-50 text-purple-600' :
                             member.cartype === 'half_year' ? 'bg-blue-50 text-blue-600' :
@@ -448,7 +448,7 @@ export default function MembersPage() {
                     <td className="px-4 py-3 text-ink-2 whitespace-nowrap text-xs">
                         {member.expired_at ? new Date(member.expired_at).toLocaleDateString() : '-'}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`px-2 py-0.5 rounded text-xs ${
                             member.gender === 'male' ? 'bg-blue-50 text-blue-600' :
                             member.gender === 'female' ? 'bg-pink-50 text-pink-600' :
@@ -457,7 +457,7 @@ export default function MembersPage() {
                             {member.gender === 'male' ? '男' : member.gender === 'female' ? '女' : '未知'}
                         </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                         <button
                             onClick={() => openTxnModal(member)}
                             className="font-medium text-blue-600 underline hover:text-blue-800 transition-colors cursor-pointer text-left"
@@ -466,8 +466,8 @@ export default function MembersPage() {
                             ¥ {member.balance.toFixed(2)}
                         </button>
                     </td>
-                    <td className="px-4 py-3 font-medium text-amber-600">{member.points}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 font-medium text-amber-600 whitespace-nowrap">{member.points}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
                             member.status === 'active' 
                                 ? 'bg-green-50 text-green-700 border border-green-100' 
@@ -476,7 +476,7 @@ export default function MembersPage() {
                             {member.status === 'active' ? '正常' : '过期'}
                         </span>
                     </td>
-                    <td className="px-4 py-3 text-ink-2">{member.channel || '-'}</td>
+                    <td className="px-4 py-3 text-ink-2 whitespace-nowrap">{member.channel || '-'}</td>
                     <td className="px-4 py-3 text-ink-2 max-w-[200px] truncate" title={member.address}>{member.address || '-'}</td>
                     <td className="px-4 py-3 text-ink-2 max-w-[150px] truncate" title={member.remark}>{member.remark || '-'}</td>
                     <td className="px-4 py-3 text-ink-2 whitespace-nowrap text-xs">{new Date(member.created_at).toLocaleString()}</td>

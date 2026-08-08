@@ -5,7 +5,7 @@ import ReactECharts from 'echarts-for-react';
 import {
   Users, CreditCard, Coins, Activity, Loader2, Calendar,
   TrendingUp, UserPlus, ShoppingCart,
-  Package, CircleDollarSign, ArrowRight, ChevronRight,
+  Package, CircleDollarSign, ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/axios';
@@ -139,27 +139,6 @@ export default function Dashboard() {
     };
   }, [data]);
 
-  // 4. 来源渠道
-  const userChannelOption = useMemo(() => {
-    if (!data?.charts?.userChannel) return {};
-    const palette = [C.brand, C.sun, C.mint, C.purple, C.pink, C.blue];
-    const seriesData = data.charts.userChannel.map((i, idx) => ({
-      value: i.count, name: i.channel || '未知来源', itemStyle: { color: palette[idx % palette.length] },
-    }));
-    return {
-      color: palette,
-      tooltip: { trigger: 'item', ...tooltipBase, formatter: '{b}: {c} 人 ({d}%)' },
-      legend: { bottom: '0%', left: 'center', icon: 'roundRect', itemWidth: 10, itemHeight: 10, textStyle: { color: C.ink2, fontSize: 12 } },
-      series: [{
-        name: '用户来源', type: 'pie', radius: ['50%', '75%'], center: ['50%', '45%'], avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 3 },
-        label: { show: false },
-        emphasis: { scale: true, scaleSize: 8, label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-        labelLine: { show: false }, data: seriesData,
-      }],
-    };
-  }, [data]);
-
   if (loading) {
     return (
       <div className="flex h-[500px] w-full items-center justify-center">
@@ -194,7 +173,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] animate-fade-up space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto w-full max-w-[1600px] animate-fade-up space-y-3 p-3 sm:p-4 lg:p-5">
 
       {/* 欢迎横幅 */}
       <div className="card relative overflow-hidden">
@@ -202,20 +181,20 @@ export default function Dashboard() {
           className="pointer-events-none absolute inset-0"
           style={{ background: 'linear-gradient(120deg, color-mix(in srgb, var(--brand) 10%, transparent), transparent 55%)' }}
         />
-        <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div className="relative flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">乐园运营数据概览</h1>
-            <p className="mt-1.5 text-sm text-ink-2">实时追踪会员、交易与经营关键指标</p>
+            <h1 className="text-lg font-bold tracking-tight text-ink sm:text-xl">乐园运营数据概览</h1>
+            <p className="mt-0.5 text-xs text-ink-2">实时追踪会员、交易与经营关键指标</p>
           </div>
-          <div className="flex items-center gap-2 self-start rounded-xl bg-surface-2 px-3 py-2 text-sm text-ink-2 sm:self-auto">
-            <Calendar size={16} className="text-ink-3" />
+          <div className="flex items-center gap-2 self-start rounded-lg bg-surface-2 px-2.5 py-1.5 text-xs text-ink-2 sm:self-auto">
+            <Calendar size={14} className="text-ink-3" />
             <span className="font-medium">{todayStr}</span>
           </div>
         </div>
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="总会员数" value={data.summary.totalMembers.toLocaleString()} icon={Users} tone="brand" delta="动态" deltaDir="up" />
         <StatCard
           label="今日消费额"
@@ -232,122 +211,94 @@ export default function Dashboard() {
 
       {/* 会员增长趋势 */}
       <div className="card overflow-hidden">
-        <div className="flex items-center justify-between px-6 pb-2 pt-6">
+        <div className="flex items-center justify-between px-3 py-1.5">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--brand) 14%, transparent)', color: C.brand }}>
-              <TrendingUp size={16} />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: 'color-mix(in srgb, var(--brand) 14%, transparent)', color: C.brand }}>
+              <TrendingUp size={14} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-ink">会员增长趋势</h3>
+              <h3 className="text-sm font-bold text-ink">会员增长趋势</h3>
               <p className="text-xs text-ink-3">近7天新增会员数量变化</p>
             </div>
           </div>
-          <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-ink-3">近7天</span>
+          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-3">近7天</span>
         </div>
         <div className="px-2">
-          <ReactECharts option={memberGrowthOption} style={{ height: '320px' }} />
+          <ReactECharts option={memberGrowthOption} style={{ height: '190px' }} />
         </div>
       </div>
 
       {/* 收支流水 + 性别分布 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="card overflow-hidden">
-          <div className="flex items-center justify-between px-6 pb-2 pt-6">
+          <div className="flex items-center justify-between px-3 py-1.5">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--color-mint) 14%, transparent)', color: C.mint }}>
-                <CircleDollarSign size={16} />
+              <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: 'color-mix(in srgb, var(--color-mint) 14%, transparent)', color: C.mint }}>
+                <CircleDollarSign size={14} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-ink">收支流水分析</h3>
+                <h3 className="text-sm font-bold text-ink">收支流水分析</h3>
                 <p className="text-xs text-ink-3">本周充值/消费对比</p>
               </div>
             </div>
-            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-ink-3">本周</span>
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-3">本周</span>
           </div>
           <div className="px-2">
-            <ReactECharts option={transactionOption} style={{ height: '320px' }} />
+            <ReactECharts option={transactionOption} style={{ height: '190px' }} />
           </div>
         </div>
 
         <div className="card overflow-hidden">
-          <div className="flex items-center justify-between px-6 pb-2 pt-6">
+          <div className="flex items-center justify-between px-3 py-1.5">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--color-pink) 14%, transparent)', color: C.pink }}>
-                <Users size={16} />
+              <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ background: 'color-mix(in srgb, var(--color-pink) 14%, transparent)', color: C.pink }}>
+                <Users size={14} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-ink">会员性别分布</h3>
+                <h3 className="text-sm font-bold text-ink">会员性别分布</h3>
                 <p className="text-xs text-ink-3">全体会员性别占比统计</p>
               </div>
             </div>
-            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-ink-3">实时</span>
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-3">实时</span>
           </div>
           <div className="px-2">
-            <ReactECharts option={memberGenderOption} style={{ height: '320px' }} />
+            <ReactECharts option={memberGenderOption} style={{ height: '190px' }} />
           </div>
         </div>
       </div>
 
-      {/* 来源渠道 + 快捷操作 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <div className="card overflow-hidden lg:col-span-3">
-          <div className="flex items-center justify-between px-6 pb-2 pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--color-blue) 14%, transparent)', color: C.blue }}>
-                <ArrowRight size={16} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-ink">用户来源渠道</h3>
-                <p className="text-xs text-ink-3">新会员注册渠道分布</p>
-              </div>
-            </div>
-            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-ink-3">全部</span>
-          </div>
-          <div className="px-2">
-            <ReactECharts option={userChannelOption} style={{ height: '320px' }} />
-          </div>
-        </div>
-
-        <div className="card overflow-hidden lg:col-span-2">
-          <div className="flex items-center gap-3 px-6 pb-2 pt-6">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-ink-2">
-              <Package size={16} />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-ink">快捷操作</h3>
-              <p className="text-xs text-ink-3">常用功能快速入口</p>
-            </div>
-          </div>
-          <div className="space-y-0.5 px-4 pb-4">
-            {quickActions.map((a) => (
-              <Link
-                key={a.href}
-                href={a.href}
-                className="group flex items-center gap-4 rounded-xl border border-transparent p-4 transition-colors hover:border-border hover:bg-surface-2"
+      {/* 快捷操作 */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((a) => (
+            <Link
+              key={a.href}
+              href={a.href}
+              className="group card card-hover flex items-center gap-3 p-3"
+            >
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white transition-transform duration-200 group-hover:scale-110"
+                style={{ background: a.tone }}
               >
-                <div
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-white transition-transform duration-200 group-hover:scale-110"
-                  style={{ background: a.tone }}
-                >
-                  <a.icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-ink">{a.label}</p>
-                  <p className="mt-0.5 text-xs text-ink-3">{a.desc}</p>
-                </div>
-                <ChevronRight size={16} className="flex-shrink-0 text-ink-3 transition-colors group-hover:text-ink-2" />
-              </Link>
-            ))}
+                <a.icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-ink">{a.label}</p>
+                <p className="mt-0 text-[10px] text-ink-3">{a.desc}</p>
+              </div>
+              <ChevronRight size={12} className="shrink-0 text-ink-3 transition-colors group-hover:text-ink-2" />
+            </Link>
+          ))}
+        </div>
+        <div className="flex items-center gap-4 rounded-xl bg-surface-2 px-4 py-2.5">
+          <div className="flex-1">
+            <span className="text-[10px] text-ink-3">累计会员</span>
+            <span className="ml-2 text-sm font-bold text-ink">{data.summary.totalMembers.toLocaleString()}</span>
           </div>
-          <div className="grid grid-cols-2 gap-4 border-t border-border px-6 py-4">
-            <div>
-              <p className="text-2xl font-bold text-ink">{data.summary.totalMembers.toLocaleString()}</p>
-              <p className="mt-0.5 text-xs text-ink-3">累计会员</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-ink">¥ {data.summary.todaySales.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-              <p className="mt-0.5 text-xs text-ink-3">今日营业额</p>
-            </div>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex-1">
+            <span className="text-[10px] text-ink-3">今日营业额</span>
+            <span className="ml-2 text-sm font-bold text-ink">¥ {data.summary.todaySales.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
         </div>
       </div>

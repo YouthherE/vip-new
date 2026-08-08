@@ -22,40 +22,36 @@ interface StatCardProps {
   hint?: string;
 }
 
-/** 关键指标卡：彩色图标芯片 + 数值 + 趋势 */
+/** 关键指标卡：横向紧凑布局，图标 + 数值 + 标签在一行 */
 export function StatCard({ label, value, icon: Icon, tone = 'brand', delta, deltaDir = 'up', hint }: StatCardProps) {
   const c = toneVar[tone];
   return (
-    <div className="card card-hover animate-fade-up p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-ink-2">{label}</p>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-ink">{value}</p>
-        </div>
+    <div className="card card-hover animate-fade-up p-3">
+      <div className="flex items-center gap-3">
         {Icon && (
           <div
-            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
             style={{ background: `color-mix(in srgb, ${c} 15%, transparent)`, color: c }}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-4 w-4" />
           </div>
         )}
-      </div>
-      {(delta || hint) && (
-        <div className="mt-3 flex items-center gap-1.5 text-xs">
-          {delta && (
-            <span className={deltaDir === 'down' ? 'text-danger' : 'text-success'}>
-              {deltaDir === 'down' ? (
-                <ArrowDownRight className="inline h-3.5 w-3.5" />
-              ) : (
-                <ArrowUpRight className="inline h-3.5 w-3.5" />
-              )}
-              {delta}
-            </span>
-          )}
-          {hint && <span className="text-ink-3">{hint}</span>}
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] text-ink-3">{label}</p>
+          <p className="text-base font-bold tracking-tight text-ink">{value}</p>
         </div>
-      )}
+        {(delta || hint) && (
+          <span className={`shrink-0 inline-flex items-center gap-0.5 rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium ${deltaDir === 'down' ? 'text-danger' : 'text-success'}`}>
+            {delta && (
+              <>
+                {deltaDir === 'up' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {delta}
+              </>
+            )}
+            {hint && <span className="ml-0.5 text-ink-3">{hint}</span>}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
