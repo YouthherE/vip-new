@@ -1,0 +1,41 @@
+{
+	"name": "cf-nextjs-vip",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint",
+		"deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+		"upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+		"preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+		"cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts"
+	},
+	"dependencies": {
+		"@opennextjs/cloudflare": "^1.15.1",
+		"axios": "^1.13.4",
+		"echarts": "^6.0.0",
+		"echarts-for-react": "^3.0.6",
+		"html5-qrcode": "^2.3.8",
+		"jose": "^6.1.3",
+		"lucide-react": "^0.563.0",
+		"next": "16.1.5",
+		"react": "19.1.5",
+		"react-dom": "19.1.5",
+		"react-markdown": "^10.1.0"
+	},
+	"devDependencies": {
+		"@eslint/eslintrc": "^3",
+		"@tailwindcss/postcss": "^4",
+		"@tailwindcss/typography": "^0.5.19",
+		"@types/node": "^20.19.31",
+		"@types/react": "^19.1.5",
+		"@types/react-dom": "^19.1.5",
+		"eslint": "^9",
+		"eslint-config-next": "15.4.6",
+		"tailwindcss": "^4",
+		"typescript": "^5.7.4",
+		"wrangler": "^4.61.1"
+	}
+}

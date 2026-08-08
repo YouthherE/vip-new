@@ -1,0 +1,415 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* ============================================================
+   设计系统 · 星光儿童乐园会员管理与收银系统
+   专业克制 · 中性底 + 活力强调色 · 单一浅色主题
+   通过 @theme inline 把令牌映射到 CSS 变量，全局统一一套配色
+   ============================================================ */
+
+@theme inline {
+  /* 字体 */
+  --font-sans: 'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  /* 语义色板（映射到下方变量，随主题切换） */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-brand: var(--brand);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+
+  --color-sun: #FFB020;
+  --color-mint: #14C8A6;
+  --color-purple: #7C5CFC;
+  --color-pink: #FF6FA5;
+  --color-blue: #3B82F6;
+
+  --color-success: #16B981;
+  --color-success-bg: #ECFDF5;
+  --color-warning: #F59E0B;
+  --color-warning-bg: #FFFBEB;
+  --color-danger: #EF4444;
+  --color-danger-bg: #FEF2F2;
+  --color-info: #3B82F6;
+  --color-info-bg: #EFF6FF;
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* 阴影 /  elevation */
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.06);
+  --shadow-sm: 0 1px 3px rgb(16 24 40 / 0.08), 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-md: 0 4px 12px rgb(16 24 40 / 0.08);
+  --shadow-lg: 0 12px 32px rgb(16 24 40 / 0.12);
+  --shadow-brand: 0 8px 20px rgb(255 107 92 / 0.35);
+
+  /* 动效 */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ===================== 主题色板（浅色，全局唯一） ===================== */
+:root {
+  --bg: #F6F7FB;
+  --surface: #FFFFFF;
+  --surface-2: #F1F3F8;
+  --ink: #1A1D26;
+  --ink-2: #5B6472;
+  --ink-3: #939BAA;
+  --border: #E7EAF1;
+  --border-strong: #D6DAE4;
+
+  --brand: #FF6B5C;
+  --brand-600: #F2543F;
+  --brand-700: #D9432F;
+
+  --color-success-bg: #ECFDF5;
+  --color-warning-bg: #FFFBEB;
+  --color-danger-bg: #FEF2F2;
+  --color-info-bg: #EFF6FF;
+}
+
+/* ============================================================
+   基础层：原生元素直接获得统一、精致的视觉
+   这一步让 /所有/ 页面（含未逐页改动的）自动变漂亮
+   ============================================================ */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--ink);
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--brand) 22%, transparent);
+    color: var(--ink);
+  }
+
+  /* 原生按钮：统一形状、圆角、配色、聚焦态 */
+  button:not([class]) {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  /* 表单控件：统一外观，去掉浏览器默认 */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.875rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out), background 0.15s var(--ease-out);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--ink-3);
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+  }
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23939BAA' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    padding-right: 2.25rem;
+  }
+
+  /* 表格：统一、清爽、斑马纹 */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  thead th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: var(--surface-2);
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  thead th:first-child { border-top-left-radius: var(--radius-md); }
+  thead th:last-child { border-top-right-radius: var(--radius-md); }
+  tbody td {
+    padding: 0.8rem 1rem;
+    font-size: 0.875rem;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tbody tr {
+    transition: background 0.12s var(--ease-out);
+  }
+  tbody tr:hover {
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
+
+  /* 聚焦可见性（无障碍） */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+}
+
+/* ============================================================
+   组件层：可复用的语义工具类（.btn / .card / .badge ...）
+   React 组件库也基于这些类，保证全站一致
+   ============================================================ */
+@layer components {
+  /* ---------- 卡片 ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+
+  /* ---------- 按钮（胶囊形 · 柔和渐变 · 呼吸感） ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    font-family: inherit;
+    font-weight: 580;
+    line-height: 1;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+  .btn:active {
+    transform: translateY(0) scale(0.97);
+    transition-duration: 0.08s;
+  }
+  .btn:disabled, .btn[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none;
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 3px;
+  }
+
+  /* 尺寸 */
+  .btn-sm { height: 32px; padding: 0 0.9rem; font-size: 0.78rem; }
+  .btn-md { height: 40px; padding: 0 1.2rem; font-size: 0.875rem; }
+  .btn-lg { height: 48px; padding: 0 1.6rem; font-size: 0.95rem; }
+
+  /* 形态 */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--brand) 32%, transparent);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--brand) 45%, transparent);
+    filter: brightness(1.06);
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--ink);
+    border-color: var(--border-strong);
+  }
+  .btn-secondary:hover {
+    background: var(--surface-2);
+    border-color: var(--ink-3);
+    box-shadow: 0 2px 8px rgb(16 24 40 / 0.06);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-2);
+  }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--ink); }
+
+  .btn-danger {
+    background: linear-gradient(135deg, var(--color-danger) 0%, #DC2626 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-danger) 28%, transparent);
+  }
+  .btn-danger:hover {
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--color-danger) 40%, transparent);
+    filter: brightness(1.06);
+  }
+
+  /* 图标按钮 — 正圆形 */
+  .btn-icon { padding: 0; }
+  .btn-icon.btn-sm { width: 32px; height: 32px; }
+  .btn-icon.btn-md { width: 40px; height: 40px; }
+  .btn-icon.btn-lg { width: 48px; height: 48px; }
+
+  /* ---------- 徽章 ---------- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.28rem 0.55rem;
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+  }
+  .badge-brand { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-700); }
+  .badge-success { background: var(--color-success-bg); color: #047857; }
+  .badge-warning { background: var(--color-warning-bg); color: #B45309; }
+  .badge-danger { background: var(--color-danger-bg); color: #B91C1C; }
+  .badge-info { background: var(--color-info-bg); color: #1D4ED8; }
+  .badge-neutral { background: var(--surface-2); color: var(--ink-2); }
+
+  /* ---------- 表格卡片容器 ---------- */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+/* ---------- 模态弹窗 ---------- */
+  .modal-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 60px rgb(16 24 40 / 0.18);
+    overflow: hidden;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+  }
+  .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 0.9rem 1.25rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+/* ---------- 商品/成员网格卡片 ---------- */
+  .grid-card {
+    background: var(--surface);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s var(--ease-out);
+  }
+  .grid-card:hover {
+    border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+    box-shadow: 0 8px 24px rgb(16 24 40 / 0.10);
+    transform: translateY(-2px);
+  }
+  .grid-card.selected {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+  }
+
+/* ---------- 页面区块标题 ---------- */
+  .page-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .page-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .page-sub {
+    color: var(--ink-2);
+    font-size: 0.85rem;
+    margin-top: 0.2rem;
+  }
+}
+
+/* ---------- 入场动效（克制） ---------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.4s var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

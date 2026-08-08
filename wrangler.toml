@@ -1,0 +1,13 @@
+name = "vip-new"
+main = "src/index.ts"
+compatibility_date = "2026-08-02"
+
+# ── D1 Database ──
+[[d1_databases]]
+binding = "DB"
+database_name = "nextjs-db"
+database_id = "5a7a9b47-3bb4-460d-8b8d-4af49e65ca78"
+
+# ── Cron Trigger: daily at 5:00 AM Beijing time (UTC+8 → 21:00 UTC) ──
+[triggers]
+crons = ["0 21 * * *"]
