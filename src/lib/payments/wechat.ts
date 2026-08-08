@@ -12,24 +12,38 @@
  */
 
 import crypto from 'crypto';
-import type { PaymentProvider, PaymentRequest, PaymentResult } from './types';
+import type { PaymentProvider, PaymentRequest, PaymentResult, PaymentGatewayConfig } from './types';
 
 // ════════ 配置 ════════
 
-function env(key: string): string {
-  const v = process.env[key];
-  if (!v) throw new Error(`支付平台配置未就绪：${key} 未设置`);
-  return v;
-}
+/** 合并配置：DB 配置优先，环境变量兜底 */
+function getConfig(gw?: PaymentGatewayConfig) {
+  // 环境变量兜底
+  const env = (key: string) => process.env[key] || '';
 
-function getConfig() {
-  return {
-    appId: env('WECHAT_APP_ID'),
-    mchId: env('WECHAT_MCH_ID'),
-    apiV3Key: env('WECHAT_API_V3_KEY'),
-    privateKey: env('WECHAT_PRIVATE_KEY').replace(/\\n/g, '\n'),
-    certSerialNo: env('WECHAT_CERT_SERIAL_NO'),
-  };
+  const dbAppId = gw?.wechatAppId;
+  const dbMchId = gw?.wechatMchId;
+  const dbKey = gw?.wechatApiV3Key;
+  const dbPri = gw?.wechatPrivateKey;
+  const dbSerial = gw?.wechatCertSerialNo;
+
+  const appId = dbAppId || env('WECHAT_APP_ID');
+  const mchId = dbMchId || env('WECHAT_MCH_ID');
+  const apiV3Key = dbKey || env('WECHAT_API_V3_KEY');
+  const privateKey = (dbPri || env('WECHAT_PRIVATE_KEY')).replace(/\\n/g, '\n');
+  const certSerialNo = dbSerial || env('WECHAT_CERT_SERIAL_NO');
+
+  if (!appId || !mchId || !apiV3Key || !privateKey || !certSerialNo) {
+    const missing: string[] = [];
+    if (!appId) missing.push('WECHAT_APP_ID');
+    if (!mchId) missing.push('WECHAT_MCH_ID');
+    if (!apiV3Key) missing.push('WECHAT_API_V3_KEY');
+    if (!privateKey) missing.push('WECHAT_PRIVATE_KEY');
+    if (!certSerialNo) missing.push('WECHAT_CERT_SERIAL_NO');
+    throw new Error(`支付平台配置未就绪：${missing.join(', ')} 未设置`);
+  }
+
+  return { appId, mchId, apiV3Key, privateKey, certSerialNo };
 }
 
 // ════════ 签名工具 ════════
@@ -54,8 +68,8 @@ function sign(method: 'POST' | 'GET', url: string, body: string, privateKey: str
 
 // ════════ 请求微信 API ════════
 
-async function wechatPayRequest(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const cfg = getConfig();
+async function wechatPayRequest(path: string, body: Record<string, unknown>, gw?: PaymentGatewayConfig): Promise<Record<string, unknown>> {
+  const cfg = getConfig(gw);
   const base = process.env.WECHAT_API_BASE || 'https://api.mch.weixin.qq.com';
   const url = `${base}${path}`;
   const bodyStr = JSON.stringify(body);
@@ -87,7 +101,7 @@ async function wechatPayRequest(path: string, body: Record<string, unknown>): Pr
 export const wechatPayProvider: PaymentProvider = {
   async pay(req: PaymentRequest): Promise<PaymentResult> {
     try {
-      const cfg = getConfig();
+      const cfg = getConfig(req.config);
 
       // POST /v3/pay/transactions/jsapi（条码支付/付款码支付统一入口）
       const resp = await wechatPayRequest('/v3/pay/transactions/jsapi', {
@@ -95,7 +109,7 @@ export const wechatPayProvider: PaymentProvider = {
         mchid: cfg.mchId,
         description: req.description || `星光儿童乐园-${req.orderNo}`,
         out_trade_no: req.orderNo,
-        notify_url: process.env.WECHAT_NOTIFY_URL || '',
+        notify_url: (req.config?.wechatNotifyUrl || process.env.WECHAT_NOTIFY_URL || ''),
         amount: {
           total: Math.round(req.amount * 100), // 金额：分
           currency: 'CNY',
@@ -106,7 +120,7 @@ export const wechatPayProvider: PaymentProvider = {
         scene_info: {
           payer_client_ip: '127.0.0.1',
         },
-      });
+      }, req.config);
 
       return {
         success: true,

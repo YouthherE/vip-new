@@ -66,7 +66,7 @@ const menuCategories: MenuCategory[] = [
     id: 'settings',
     label: '系统设置',
     icon: Settings,
-    items: [{ id: 'others', label: '系统配置', icon: MoreHorizontal, path: '/others' }],
+    items: [{ id: 'others', label: '功能配置', icon: MoreHorizontal, path: '/others' }],
   },
 ];
 

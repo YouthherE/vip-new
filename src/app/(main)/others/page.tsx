@@ -19,6 +19,8 @@ import {
   EyeOff,
   User,
   AlertTriangle,
+  CreditCard,
+  Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/axios';
@@ -31,6 +33,13 @@ const applications = [
     description: '查看系统注册的所有员工账户信息',
     icon: Users,
     color: 'bg-surface-2 text-brand-700',
+  },
+  {
+    id: 'payment-config',
+    title: '支付配置',
+    description: '管理微信支付、支付宝商户参数',
+    icon: CreditCard,
+    color: 'bg-blue-100 text-blue-600',
   },
   {
     id: 'plans',
@@ -156,6 +165,73 @@ export default function OthersPage() {
       setCanManage(false);
     }
   }, []);
+
+  // ── 支付配置 ──
+  const [showPaymentConfig, setShowPaymentConfig] = useState(false);
+  const [paymentCfgLoading, setPaymentCfgLoading] = useState(false);
+  const [paymentCfgSaving, setPaymentCfgSaving] = useState(false);
+  const [paymentCfgForm, setPaymentCfgForm] = useState({
+    wechatAppId: '',
+    wechatMchId: '',
+    wechatApiV3Key: '',
+    wechatPrivateKey: '',
+    wechatCertSerialNo: '',
+    wechatNotifyUrl: '',
+    alipayAppId: '',
+    alipayPrivateKey: '',
+    alipayPublicKey: '',
+  });
+  const [paymentCfgConfigured, setPaymentCfgConfigured] = useState(false);
+
+  /** 打开支付配置弹窗并加载当前配置 */
+  const handleOpenPaymentConfig = async () => {
+    setShowPaymentConfig(true);
+    setPaymentCfgLoading(true);
+    try {
+      const res = await api.get('/settings/payment');
+      if (res.data.code === 200 && res.data.data?.configured) {
+        const c = res.data.data.config;
+        setPaymentCfgForm({
+          wechatAppId: c.wechatAppId || '',
+          wechatMchId: c.wechatMchId || '',
+          wechatApiV3Key: c.wechatApiV3Key || '',
+          wechatPrivateKey: c.wechatPrivateKey || '',
+          wechatCertSerialNo: c.wechatCertSerialNo || '',
+          wechatNotifyUrl: c.wechatNotifyUrl || '',
+          alipayAppId: c.alipayAppId || '',
+          alipayPrivateKey: c.alipayPrivateKey || '',
+          alipayPublicKey: c.alipayPublicKey || '',
+        });
+        setPaymentCfgConfigured(true);
+      } else {
+        setPaymentCfgConfigured(false);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setPaymentCfgLoading(false);
+    }
+  };
+
+  /** 保存支付配置 */
+  const handleSavePaymentConfig = async () => {
+    setPaymentCfgSaving(true);
+    try {
+      const res = await api.put('/settings/payment', paymentCfgForm);
+      if (res.data.code === 200) {
+        toast.success('支付配置已保存');
+        setPaymentCfgConfigured(true);
+        setShowPaymentConfig(false);
+      } else {
+        toast.error(res.data.message || '保存失败');
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || '保存失败');
+    } finally {
+      setPaymentCfgSaving(false);
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
@@ -385,7 +461,176 @@ export default function OthersPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-ink">其它应用</h1>
         <p className="text-ink-2 mt-2">探索更多实用工具，提升工作效率</p>
-      </div>
+        {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
       {/* ── Application Cards Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -399,7 +644,364 @@ export default function OthersPage() {
               >
                 <div className={`p-3 rounded-lg mb-4 ${app.color} group-hover:scale-110 transition-transform duration-200`}>
                   <app.icon className="w-6 h-6" />
+                  {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
                 </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+                <h3 className="text-lg font-semibold text-ink mb-2 group-hover:text-brand-700 transition-colors">
+                  {app.title}
+                </h3>
+                <p className="text-sm text-ink-2 leading-relaxed">
+                  {app.description}
+                </p>
+              </button>
+            );
+          }
+          if (app.id === 'payment-config') {
+            return (
+              <button
+                key={app.id}
+                onClick={handleOpenPaymentConfig}
+                className="group bg-surface p-6 rounded-xl border border-border-strong hover:shadow-md hover:border-brand transition-all duration-200 flex flex-col items-start text-left cursor-pointer"
+              >
+                <div className={`p-3 rounded-lg mb-4 ${app.color} group-hover:scale-110 transition-transform duration-200`}>
+                  <app.icon className="w-6 h-6" />
+                  {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
                 <h3 className="text-lg font-semibold text-ink mb-2 group-hover:text-brand-700 transition-colors">
                   {app.title}
                 </h3>
@@ -418,7 +1020,176 @@ export default function OthersPage() {
             >
               <div className={`p-3 rounded-lg mb-4 ${app.color} group-hover:scale-110 transition-transform duration-200`}>
                 <app.icon className="w-6 h-6" />
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
               <h3 className="text-lg font-semibold text-ink mb-2 group-hover:text-brand-700 transition-colors">
                 {app.title}
               </h3>
@@ -428,7 +1199,176 @@ export default function OthersPage() {
             </Link>
           );
         })}
-      </div>
+        {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
       {/* ═══════════════════════ Employee Management Modal ═══════════════════════ */}
       {showStaff && (
@@ -439,11 +1379,349 @@ export default function OthersPage() {
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base text-ink">员工管理</h3>
                 <span className="text-xs text-ink-3">共 {pagination.total} 人</span>
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
-              <button onClick={() => setShowStaff(false)} className="text-ink-3 hover:text-ink-2">
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+              <button onClick={() => setShowStaff(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
             {/* Toolbar — 紧凑筛选栏 */}
             <div className="px-5 py-3 flex items-center gap-2 border-b border-border flex-shrink-0">
@@ -458,7 +1736,176 @@ export default function OthersPage() {
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="w-full pl-8 pr-3 py-1.5 bg-surface-2 border border-border-strong rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                 />
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
               {/* Role Filter */}
               <select
@@ -499,14 +1946,352 @@ export default function OthersPage() {
                   新增
                 </button>
               )}
+              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
             </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
             {/* Table Body */}
             <div className="overflow-y-auto flex-1">
               {staffLoading ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+                  {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
                 </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
               ) : staffUsers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-ink-3">
                   <Users className="w-12 h-12 mb-3 text-ink-3" />
@@ -519,7 +2304,176 @@ export default function OthersPage() {
                       清除筛选条件
                     </button>
                   )}
+                  {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
                 </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
               ) : (
                 <table className="w-full text-sm">
                   <thead className="bg-surface-2 sticky top-0 z-10">
@@ -539,11 +2493,349 @@ export default function OthersPage() {
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-brand-700 text-xs font-bold flex-shrink-0">
                               {getNameInitial(user.username)}
-                            </div>
+                              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
                             <span className="font-medium text-ink whitespace-nowrap font-mono text-xs">
                               {user.username}
                             </span>
-                          </div>
+                            {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
                         </td>
                         <td className="px-5 py-3 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -588,7 +2880,176 @@ export default function OthersPage() {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
-                            </div>
+                              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
                           ) : (
                             <span className="text-xs text-ink-3">-</span>
                           )}
@@ -598,7 +3059,176 @@ export default function OthersPage() {
                   </tbody>
                 </table>
               )}
+              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
             </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
             {/* Pagination */}
             {pagination.total > 0 && (
@@ -639,7 +3269,176 @@ export default function OthersPage() {
                           >
                             {p}
                           </button>
-                        </div>
+                          {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
                       );
                     })}
                   <button
@@ -649,11 +3448,687 @@ export default function OthersPage() {
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
+                  {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
                 </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
-            )}
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+      )}
+    </div>
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+            )}
+            {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+          {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
       )}
 
       {/* ═══════════════════════ Add / Edit Employee Form Modal ═══════════════════════ */}
@@ -665,15 +4140,522 @@ export default function OthersPage() {
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-surface-2 text-brand-700">
                   <User className="w-5 h-5" />
+                  {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-lg text-ink">
-                  {formMode === 'add' ? '新增员工' : '编辑员工'}
-                </h3>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
-              <button onClick={() => setShowFormModal(false)} className="text-ink-3 hover:text-ink-2">
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+                <h3 className="font-bold text-lg text-ink">
+                  {formMode === 'add' ? '新增员工' : '编辑员工'}
+                </h3>
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+              <button onClick={() => setShowFormModal(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
             {/* Form Body */}
             <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
@@ -698,7 +4680,176 @@ export default function OthersPage() {
                 {formErrors.role && (
                   <p className="text-xs text-red-500 mt-1">{formErrors.role}</p>
                 )}
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
               {/* 账户名 */}
               <div>
@@ -722,7 +4873,176 @@ export default function OthersPage() {
                 {formErrors.username && (
                   <p className="text-xs text-red-500 mt-1">{formErrors.username}</p>
                 )}
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
               {/* 手机号 */}
               <div>
@@ -744,7 +5064,176 @@ export default function OthersPage() {
                 {formErrors.phone && (
                   <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>
                 )}
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
               {/* 密码 */}
               <div>
@@ -775,11 +5264,349 @@ export default function OthersPage() {
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                  {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
                 </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
                 {formErrors.password && (
                   <p className="text-xs text-red-500 mt-1">{formErrors.password}</p>
                 )}
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
               {/* 确认密码 */}
               <div>
@@ -814,11 +5641,349 @@ export default function OthersPage() {
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                  {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
                 </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
                 {formErrors.confirmPassword && (
                   <p className="text-xs text-red-500 mt-1">{formErrors.confirmPassword}</p>
                 )}
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
               {/* 状态 */}
               <div>
@@ -833,8 +5998,346 @@ export default function OthersPage() {
                   <option value={1}>启用</option>
                   <option value={0}>禁用</option>
                 </select>
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
 
             {/* Form Footer */}
             <div className="p-5 border-t border-border flex justify-end gap-3 bg-surface-2/50">
@@ -852,9 +6355,516 @@ export default function OthersPage() {
                 {formSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 保存
               </button>
+              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+    </div>
+            {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+          {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
       )}
 
       {/* ═══════════════════════ Delete Confirmation Modal ═══════════════════════ */}
@@ -864,12 +6874,350 @@ export default function OthersPage() {
             <div className="p-6 text-center">
               <div className="mx-auto w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
+                {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
               </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
               <h3 className="text-lg font-bold text-ink mb-2">确认删除该员工？</h3>
               <p className="text-sm text-ink-2">
                 您确定要删除 <span className="font-semibold text-ink">{deletingUser.username}</span> 吗？此操作不可撤销。
               </p>
+              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
             </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
             <div className="modal-footer/50">
               <button
                 onClick={() => setShowDeleteModal(false)}
@@ -885,6 +7233,682 @@ export default function OthersPage() {
                 {deleteSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 确认删除
               </button>
+              {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+            {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+          {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+      )}
+      {/* ═══════════════════════ Payment Config Modal ═══════════════════════ */}
+      {showPaymentConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="modal-header flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-base text-ink">支付配置</h3>
+                {paymentCfgConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                    <Check className="w-3 h-3" />已配置
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowPaymentConfig(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              {paymentCfgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
+                </div>
+              ) : (
+                <>
+                  {/* ── 微信支付 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-green-500" />
+                      微信支付
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatAppId: e.target.value })}
+                          placeholder="wx1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户号 MCH ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatMchId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatMchId: e.target.value })}
+                          placeholder="1234567890"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">API V3 密钥</label>
+                        <input
+                          type="password"
+                          value={paymentCfgForm.wechatApiV3Key}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatApiV3Key: e.target.value })}
+                          placeholder="32位密钥"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">证书序列号</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatCertSerialNo}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatCertSerialNo: e.target.value })}
+                          placeholder="序列号"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">商户私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.wechatPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">回调地址 (选填)</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.wechatNotifyUrl}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, wechatNotifyUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 支付宝 ── */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+                      <span className="w-1 h-4 rounded-full bg-blue-500" />
+                      支付宝
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink-2 mb-1">APP ID</label>
+                        <input
+                          type="text"
+                          value={paymentCfgForm.alipayAppId}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayAppId: e.target.value })}
+                          placeholder="2021xxxxxxxxxxxx"
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div></div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">应用私钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPrivateKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPrivateKey: e.target.value })}
+                          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-ink-2 mb-1">支付宝公钥 (PEM)</label>
+                        <textarea
+                          value={paymentCfgForm.alipayPublicKey}
+                          onChange={(e) => setPaymentCfgForm({ ...paymentCfgForm, alipayPublicKey: e.target.value })}
+                          placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border flex justify-between items-center bg-surface-2/50 flex-shrink-0">
+              <p className="text-xs text-ink-3">
+                DB 配置优先于环境变量，仅超级管理员可修改
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPaymentConfig(false)}
+                  className="px-4 py-2 border border-border-strong rounded-lg text-sm text-ink-2 hover:bg-surface transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSavePaymentConfig}
+                  disabled={paymentCfgSaving || paymentCfgLoading}
+                  className="px-4 py-2 bg-surface-20 text-white text-sm font-medium rounded-lg hover:bg-brand transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {paymentCfgSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  保存配置
+                </button>
+              </div>
             </div>
           </div>
         </div>

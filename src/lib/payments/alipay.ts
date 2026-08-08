@@ -10,22 +10,31 @@
  */
 
 import crypto from 'crypto';
-import type { PaymentProvider, PaymentRequest, PaymentResult } from './types';
+import type { PaymentProvider, PaymentRequest, PaymentResult, PaymentGatewayConfig } from './types';
 
 // ════════ 配置 ════════
 
-function env(key: string): string {
-  const v = process.env[key];
-  if (!v) throw new Error(`支付平台配置未就绪：${key} 未设置`);
-  return v;
-}
+/** 合并配置：DB 配置优先，环境变量兜底 */
+function getConfig(gw?: PaymentGatewayConfig) {
+  const env = (key: string) => process.env[key] || '';
 
-function getConfig() {
-  return {
-    appId: env('ALIPAY_APP_ID'),
-    privateKey: env('ALIPAY_PRIVATE_KEY').replace(/\\n/g, '\n'),
-    publicKey: env('ALIPAY_PUBLIC_KEY').replace(/\\n/g, '\n'),
-  };
+  const dbAppId = gw?.alipayAppId;
+  const dbPri = gw?.alipayPrivateKey;
+  const dbPub = gw?.alipayPublicKey;
+
+  const appId = dbAppId || env('ALIPAY_APP_ID');
+  const privateKey = (dbPri || env('ALIPAY_PRIVATE_KEY')).replace(/\\n/g, '\n');
+  const publicKey = (dbPub || env('ALIPAY_PUBLIC_KEY')).replace(/\\n/g, '\n');
+
+  if (!appId || !privateKey || !publicKey) {
+    const missing: string[] = [];
+    if (!appId) missing.push('ALIPAY_APP_ID');
+    if (!privateKey) missing.push('ALIPAY_PRIVATE_KEY');
+    if (!publicKey) missing.push('ALIPAY_PUBLIC_KEY');
+    throw new Error(`支付平台配置未就绪：${missing.join(', ')} 未设置`);
+  }
+
+  return { appId, privateKey, publicKey };
 }
 
 // ════════ 签名工具 ════════
@@ -63,8 +72,8 @@ interface AlipayTradePayResp {
   sign?: string;
 }
 
-async function alipayRequest(method: string, bizContent: Record<string, unknown>): Promise<AlipayTradePayResp> {
-  const cfg = getConfig();
+async function alipayRequest(method: string, bizContent: Record<string, unknown>, gw?: PaymentGatewayConfig): Promise<AlipayTradePayResp> {
+  const cfg = getConfig(gw);
   const base = process.env.ALIPAY_API_BASE || 'https://openapi.alipay.com/gateway.do';
 
   const common = {
@@ -109,7 +118,7 @@ export const alipayProvider: PaymentProvider = {
         total_amount: req.amount.toFixed(2),
         terminal_id: 'POS01',
         timeout_express: '5m',       // 5分钟超时
-      });
+      }, req.config);
 
       const r = resp.alipay_trade_pay_response;
       const successCode = '10000'; // 支付宝成功码

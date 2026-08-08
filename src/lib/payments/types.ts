@@ -1,6 +1,21 @@
 /** 支付方式 */
 export type PayMethod = 'wechat' | 'alipay';
 
+/** 从数据库/环境变量中读取的支付配置 */
+export interface PaymentGatewayConfig {
+  // 微信支付
+  wechatAppId?: string;
+  wechatMchId?: string;
+  wechatApiV3Key?: string;
+  wechatPrivateKey?: string;
+  wechatCertSerialNo?: string;
+  wechatNotifyUrl?: string;
+  // 支付宝
+  alipayAppId?: string;
+  alipayPrivateKey?: string;
+  alipayPublicKey?: string;
+}
+
 /** 发起支付的请求参数 */
 export interface PaymentRequest {
   method: PayMethod;
@@ -8,6 +23,7 @@ export interface PaymentRequest {
   amount: number;          // 金额，单位：元
   orderNo: string;         // 业务单号
   description?: string;    // 商品描述
+  config?: PaymentGatewayConfig; // DB 中配置的支付参数（优先于环境变量）
 }
 
 /** 支付平台返回结果 */

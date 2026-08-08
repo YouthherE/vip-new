@@ -6,6 +6,29 @@
 -- ============================================================
 
 -- -------------------------------------------------------
+-- 支付平台配置表（超级管理员可在"功能配置"中管理）
+-- DB 中配置的参数优先于环境变量
+-- -------------------------------------------------------
+CREATE TABLE IF NOT EXISTS payment_configs (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    -- 微信支付
+    wechat_app_id           TEXT DEFAULT '',
+    wechat_mch_id           TEXT DEFAULT '',
+    wechat_api_v3_key       TEXT DEFAULT '',
+    wechat_private_key      TEXT DEFAULT '',
+    wechat_cert_serial_no   TEXT DEFAULT '',
+    wechat_notify_url       TEXT DEFAULT '',
+    -- 支付宝
+    alipay_app_id           TEXT DEFAULT '',
+    alipay_private_key      TEXT DEFAULT '',
+    alipay_public_key       TEXT DEFAULT '',
+    -- 通用字段
+    status                  TEXT DEFAULT 'inactive',
+    created_at              TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at              TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+-- -------------------------------------------------------
 -- 1. 用户表（员工/管理员）
 -- -------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (

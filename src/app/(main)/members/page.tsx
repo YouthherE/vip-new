@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import { useToast } from '@/components/ToastProvider';
 import { TableSkeleton } from '@/components/TableSkeleton';
-import { Search, Plus, Coins, CreditCard, User, Phone, FileText, X, ChevronLeft, ChevronRight, MapPin, Share2, Activity, Calendar, Edit, History as HistoryIcon, Loader2, Download } from 'lucide-react';
+import { Search, Plus, Wallet, Banknote, Smartphone, User, Phone, FileText, X, ChevronLeft, ChevronRight, MapPin, Share2, Activity, Calendar, Edit, History as HistoryIcon, Loader2, Download } from 'lucide-react';
+import QRScanner from '@/components/QRScanner';
 
 interface Member {
   id: number;
@@ -59,6 +60,9 @@ export default function MembersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [isProcessingRecharge, setIsProcessingRecharge] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   // Forms
@@ -75,7 +79,7 @@ export default function MembersPage() {
     channel: '',
     status: 'active'
   });
-  const [adjustForm, setAdjustForm] = useState({ type: 'balance', amount: '', remark: '' });
+  const [adjustForm, setAdjustForm] = useState({ amount: '', remark: '' });
 
   // Transaction history modal states
   const [isTxnModalOpen, setIsTxnModalOpen] = useState(false);
@@ -150,27 +154,78 @@ export default function MembersPage() {
     }
   };
 
-  const handleAdjustSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAdjustSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!selectedMember) return;
+    const amount = Number(adjustForm.amount);
+    if (amount <= 0) {
+      toast.error('请输入有效的充值金额');
+      return;
+    }
+    setIsPaymentOpen(true);
+  };
+
+  const handlePaymentSelect = async (method: string) => {
+    if (!selectedMember) return;
+
+    if (method === 'cash') {
+      // 现金支付：直接充值
+      const amount = Number(adjustForm.amount);
+      try {
+        const res = await api.post('/members/adjust', {
+          memberId: selectedMember.id,
+          type: 'balance',
+          amount,
+          remark: adjustForm.remark,
+          paymentMethod: method,
+        });
+        if (res.data.code === 200) {
+          setIsPaymentOpen(false);
+          setIsAdjustOpen(false);
+          setAdjustForm({ amount: '', remark: '' });
+          fetchMembers(pagination.page);
+          toast.success(`成功为 ${selectedMember.name} 充值 ¥${amount.toFixed(2)}`);
+        } else {
+          toast.error(res.data.message);
+        }
+      } catch (e: unknown) {
+        const err = e as { response?: { data?: { message?: string } } };
+        toast.error(err.response?.data?.message || '充值失败');
+      }
+    } else {
+      // 手机支付：打开扫码枪
+      setIsPaymentOpen(false);
+      setShowScanner(true);
+    }
+  };
+
+  const handleRechargeScanSuccess = async (authCode: string) => {
+    if (!selectedMember) return;
+    setShowScanner(false);
+    setIsProcessingRecharge(true);
+
+    const amount = Number(adjustForm.amount);
     try {
-      const res = await api.post('/members/adjust', {
+      const res = await api.post('/payment/recharge', {
+        authCode,
+        amount,
         memberId: selectedMember.id,
-        type: adjustForm.type,
-        amount: Number(adjustForm.amount),
-        remark: adjustForm.remark
+        remark: adjustForm.remark || '',
       });
       if (res.data.code === 200) {
+        setIsProcessingRecharge(false);
         setIsAdjustOpen(false);
-        setAdjustForm({ type: 'balance', amount: '', remark: '' });
+        setAdjustForm({ amount: '', remark: '' });
         fetchMembers(pagination.page);
-        toast.success('变动记录添加成功');
+        toast.success(`成功为 ${selectedMember.name} 充值 ¥${amount.toFixed(2)}`);
       } else {
+        setIsProcessingRecharge(false);
         toast.error(res.data.message);
       }
     } catch (e: unknown) {
-        const err = e as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || '变动失败');
+      setIsProcessingRecharge(false);
+      const err = e as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || '充值失败');
     }
   };
 
@@ -212,7 +267,7 @@ export default function MembersPage() {
 
   const openAdjust = (member: Member) => {
     setSelectedMember(member);
-    setAdjustForm({ type: 'balance', amount: '', remark: '' }); 
+    setAdjustForm({ amount: '', remark: '' }); 
     setIsAdjustOpen(true);
   };
 
@@ -334,9 +389,9 @@ export default function MembersPage() {
           </div>
           <button 
             onClick={openAdd}
-            className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors text-sm font-medium"
+            className="flex items-center gap-1.5 bg-brand text-white px-3 py-1.5 rounded-md hover:bg-brand-600 transition-colors text-sm font-medium"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             新增会员
           </button>
         </div>
@@ -437,10 +492,10 @@ export default function MembersPage() {
                         </button>
                         <button 
                             onClick={() => openAdjust(member)}
-                            className="text-ink-3 hover:text-amber-600 transition-colors p-1"
-                            title="变动余额/积分"
+                            className="text-ink-3 hover:text-emerald-600 transition-colors p-1"
+                            title="充值"
                         >
-                            <Coins className="w-4 h-4" />
+                            <Wallet className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -614,75 +669,132 @@ export default function MembersPage() {
         </div>
       )}
 
-      {/* Adjust Modal */}
+      {/* Recharge Modal */}
       {isAdjustOpen && selectedMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="modal-card w-full max-w-md animate-in fade-in zoom-in duration-200">
+          <div className="modal-card w-full max-w-sm animate-in fade-in zoom-in duration-200">
             <div className="modal-header">
-              <h3 className="font-bold text-lg text-ink">余额/积分变动</h3>
+              <h3 className="font-bold text-lg text-ink">余额充值</h3>
               <button onClick={() => setIsAdjustOpen(false)} className="text-ink-3 hover:text-ink-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="px-4 py-3 bg-surface-2 border-b border-border flex justify-between items-center">
                 <span className="font-medium text-ink">{selectedMember.name}</span>
-                <div className="flex gap-4 text-sm">
-                    <span className="text-emerald-600">余额: {selectedMember.balance}</span>
-                    <span className="text-amber-600">积分: {selectedMember.points}</span>
-                </div>
+                <span className="text-emerald-600 text-sm font-medium">当前余额: ¥{selectedMember.balance.toFixed(2)}</span>
             </div>
             <form onSubmit={handleAdjustSubmit} className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setAdjustForm({...adjustForm, type: 'balance'})}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${adjustForm.type === 'balance' ? 'border-brand bg-surface-2 text-brand-700' : 'border-border-strong hover:border-border-strong'}`}
-                  >
-                    <CreditCard className="w-4 h-4" /> 余额
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAdjustForm({...adjustForm, type: 'points'})}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${adjustForm.type === 'points' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-border-strong hover:border-border-strong'}`}
-                  >
-                    <Coins className="w-4 h-4" /> 积分
-                  </button>
-              </div>
-
               <div className="space-y-1">
-                <label className="text-sm font-medium text-ink">变动数量</label>
+                <label className="text-sm font-medium text-ink">充值金额</label>
                 <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 font-medium">¥</span>
                     <input
                     required
                     type="number"
                     step="0.01"
+                    min="0.01"
                     value={adjustForm.amount}
                     onChange={e => setAdjustForm({...adjustForm, amount: e.target.value})}
-                    className="w-full px-3 py-2 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-                    placeholder="正数增加，负数扣除"
+                    className="w-full pl-7 pr-3 py-2 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    placeholder="请输入充值金额"
                     />
                 </div>
-                <p className="text-xs text-ink-3">输入负数（如 -100）表示扣除</p>
               </div>
 
               <div className="space-y-1">
                 <label className="text-sm font-medium text-ink">备注</label>
                 <textarea
-                required
                 value={adjustForm.remark}
                 onChange={e => setAdjustForm({...adjustForm, remark: e.target.value})}
                 className="w-full px-3 py-2 border border-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-                placeholder="请输入变动原因"
+                placeholder="充值备注（选填）"
                 rows={2}
                 />
               </div>
 
               <div className="pt-2">
-                <button type="submit" className="w-full bg-brand text-white py-2 rounded-lg hover:bg-brand-600 transition-colors shadow-sm shadow-brand">
-                    确认变动
+                <button type="button" onClick={() => handleAdjustSubmit()} className="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-200 font-medium">
+                    确认充值
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Method Modal */}
+      {isPaymentOpen && selectedMember && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="modal-card w-full max-w-sm animate-in fade-in zoom-in duration-200">
+            <div className="modal-header">
+              <h3 className="font-bold text-lg text-ink">选择支付方式</h3>
+              <button onClick={() => setIsPaymentOpen(false)} className="text-ink-3 hover:text-ink-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-4 py-3 bg-surface-2 border-b border-border flex justify-between items-center">
+              <div>
+                <span className="text-sm text-ink-2">充值金额</span>
+                <div className="text-xl font-bold text-ink">¥{Number(adjustForm.amount).toFixed(2)}</div>
+              </div>
+              <span className="text-sm text-ink-3">为 {selectedMember.name} 充值</span>
+            </div>
+            <div className="p-4 space-y-2">
+              <button
+                onClick={() => handlePaymentSelect('cash')}
+                className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all group"
+              >
+                <div className="p-2.5 bg-emerald-100 rounded-lg text-emerald-600 group-hover:bg-emerald-200 transition-colors">
+                  <Banknote className="w-6 h-6" />
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold text-ink">现金支付</div>
+                  <div className="text-sm text-ink-3">使用现金完成充值</div>
+                </div>
+              </button>
+              <button
+                onClick={() => handlePaymentSelect('mobile')}
+                className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all group"
+              >
+                <div className="p-2.5 bg-blue-100 rounded-lg text-blue-600 group-hover:bg-blue-200 transition-colors">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold text-ink">手机支付</div>
+                  <div className="text-sm text-ink-3">使用微信/支付宝扫码支付</div>
+                </div>
+              </button>
+              <button
+                onClick={() => setIsPaymentOpen(false)}
+                className="w-full py-2.5 text-sm text-ink-3 hover:text-ink-2 rounded-lg hover:bg-surface-2 transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Scanner Modal (手机支付扫码) */}
+      {showScanner && (
+        <QRScanner
+          onScan={handleRechargeScanSuccess}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* Recharge Processing Overlay */}
+      {isProcessingRecharge && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="modal-card px-10 py-8 text-center w-full max-w-xs animate-in fade-in zoom-in-95 duration-200">
+            <div className="mx-auto w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+              <Loader2 size={28} className="text-blue-600 animate-spin" />
+            </div>
+            <h3 className="text-lg font-bold text-ink mb-1">正在支付</h3>
+            <p className="text-sm text-ink-3">
+              ¥{Number(adjustForm.amount).toFixed(2)}
+            </p>
+            <p className="text-xs text-ink-3 mt-2">请稍候，正在处理支付请求...</p>
           </div>
         </div>
       )}

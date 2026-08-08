@@ -24,6 +24,7 @@ import {
   executeCheckout,
   type CheckoutResult,
 } from '@/lib/services/checkout';
+import { getPaymentConfigs } from '@/lib/services/payment-config';
 import { getPaymentProvider } from '@/lib/payments';
 import type { PayMethod } from '@/lib/payments';
 
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
   try {
     const { env } = await getCloudflareContext();
     const db = (env as CloudflareEnv).DB;
+    const paymentConfig = await getPaymentConfigs(db);
     const operator = await getOperator(request);
     const body = await request.json() as any;
     const { auth_code, price_type, items, member_id } = body;
@@ -164,6 +166,7 @@ export async function POST(request: Request) {
       amount,
       orderNo: paymentNo,
       description: `星光儿童乐园-${maskedCode}`,
+      config: paymentConfig,
     });
     const paymentStatus = gatewayResult.success ? 'success' : 'failed';
 

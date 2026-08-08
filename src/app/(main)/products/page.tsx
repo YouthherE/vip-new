@@ -340,9 +340,9 @@ export default function ProductsPage() {
           </div>
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors text-sm font-medium"
+            className="flex items-center gap-1.5 bg-brand text-white px-3 py-1.5 rounded-md hover:bg-brand-600 transition-colors text-sm font-medium"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             新增商品
           </button>
         </div>
