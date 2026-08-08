@@ -230,6 +230,71 @@ npm run dev
 | POST | `/api/auth/login` | 用户登录 |
 | POST | `/api/auth/register` | 用户注册 |
 
+### 仪表盘
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/dashboard/stats` | 仪表盘统计数据 |
+
+### 会员管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/members` | 会员列表（分页+搜索） |
+| POST | `/api/members` | 新增会员 |
+| PUT | `/api/members` | 编辑会员 |
+| DELETE | `/api/members` | 删除会员 |
+| POST | `/api/members/adjust` | 余额/积分调整 |
+
+### 商品管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/products` | 商品列表（分页+筛选） |
+| POST | `/api/products` | 上架商品 |
+| PUT | `/api/products` | 编辑商品 |
+| DELETE | `/api/products` | 删除商品 |
+| PUT | `/api/products/status` | 批量上架/下架 |
+
+### 收银台
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/cashier/products` | 已上架商品列表 |
+| POST | `/api/cashier/member/lookup` | 查询会员（手机号/姓名） |
+| POST | `/api/cashier/checkout` | 确认结算（原价/会员价） |
+| GET | `/api/cashier/entry-counts` | 今日入园人数统计 |
+
+### 订单
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/orders` | 订单列表/详情 |
+
+### 交易流水
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/transactions` | 交易流水列表 |
+
+### 数据统计
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/statistics/members` | 会员增长趋势 |
+| GET | `/api/statistics/transactions` | 收支流水统计 |
+
+### 用户/员工
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/user/profile` | 获取个人资料 |
+| PUT | `/api/user/profile` | 修改个人资料 |
+| GET | `/api/users` | 员工列表 |
+| POST | `/api/users` | 新增员工 |
+| PUT | `/api/users` | 编辑员工 |
+| DELETE | `/api/users` | 删除员工 |
+
 ### 调试与定时
 
 | 方法 | 路径 | 说明 |
